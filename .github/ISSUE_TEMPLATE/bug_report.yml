@@ -1,0 +1,33 @@
+name: 🐞 Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! First try **Dashboard → 🛠 Check & repair**. It fixes most problems.
+        If the problem remains, click **Copy report** in that window and paste it below.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you click, what did you expect, and what happened instead? Screenshots help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Check & repair report
+      description: Dashboard → Check & repair → Copy report, then paste here (no passwords are included).
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log excerpt (optional)
+      description: The last lines of `<server>\.creationtool\*.log` or `<server>\server\logs\Server.log` / `Errors.log`.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Help & about shows it (e.g. 1.0.0)

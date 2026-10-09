@@ -1,0 +1,15 @@
+# Never commit server data, secrets or local state
+*.wowserver
+secrets/
+backups/
+.creationtool/
+*.log
+*.tmp
+*.bak
+# Build/release output
+dist/
+# OS / editor clutter
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/

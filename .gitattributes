@@ -1,0 +1,8 @@
+# Keep every file byte-for-byte: PowerShell 5.1 needs the UTF-8 BOMs and CRLF line endings exactly as they are.
+* -text
+
+# Not needed inside the release zip (git archive)
+.github/           export-ignore
+docs/              export-ignore
+.gitattributes     export-ignore
+.gitignore         export-ignore

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: AzerothCore documentation
+    url: https://www.azerothcore.org/wiki/home
+    about: Questions about AzerothCore itself (GM commands, game mechanics, core development)
+  - name: Playerbots wiki
+    url: https://github.com/mod-playerbots/mod-playerbots/wiki
+    about: Questions about bot behaviour and bot commands

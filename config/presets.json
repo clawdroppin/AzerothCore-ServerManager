@@ -1,0 +1,110 @@
+﻿{
+  "_comment": "Built-in presets for the 'Presets' window. settings: values for the main World settings (Rates is merged; botsFactor scales the bot count). overrides: options per .conf file, merged into the server's extra settings ('{MaxLevel}' = the game version's maximum level). clearOverrides: remove all extra settings first.",
+  "presets": [
+    {
+      "id": "blizzlike", "icon": "🏰", "name": "Blizzlike",
+      "tagline": "The original 2008 experience.",
+      "description": "Original speeds for everything and no extra tweaks. Your bots, game version and PvP/PvE choice stay as they are.",
+      "clearOverrides": true,
+      "settings": { "Rates": { "XPKill": 1, "XPQuest": 1, "XPExplore": 1, "Money": 1, "Crafting": 1, "Gathering": 1, "Weapon": 1, "Reputation": 1, "Honor": 1 } },
+      "overrides": {}
+    },
+    {
+      "id": "relaxed", "icon": "☕", "name": "Relaxed solo",
+      "tagline": "Your own pace, with bot companions.",
+      "description": "3x speed, double rested XP, gentle death penalty, instant mail, and you can group with bots of either faction.",
+      "settings": { "Rates": { "XPKill": 3, "XPQuest": 3, "XPExplore": 3, "Money": 3, "Crafting": 3, "Gathering": 3, "Weapon": 3, "Reputation": 2, "Honor": 2 } },
+      "overrides": {
+        "worldserver.conf": {
+          "Rate.Rest.InGame": "2", "Rate.Rest.Offline.InTavernOrCity": "2", "Rate.Rest.Offline.InWilderness": "2",
+          "DurabilityLoss.OnDeath": "5", "DurabilityLoss.OnSpiritResurrect": "15",
+          "Quests.IgnoreRaid": "1", "MailDeliveryDelay": "0", "AllowTwoSide.Interaction.Group": "1"
+        },
+        "modules/playerbots.conf": { "AiPlayerbot.RandomBotInvitePlayer": "1" }
+      }
+    },
+    {
+      "id": "fast", "icon": "⚡", "name": "Fast & fun",
+      "tagline": "Level fast, skip the boring parts.",
+      "description": "10x speed, every flight path known and instant flights, triple rested XP, 100 gold to start, no intro movies, instant mail.",
+      "settings": { "Rates": { "XPKill": 10, "XPQuest": 10, "XPExplore": 10, "Money": 10, "Crafting": 10, "Gathering": 10, "Weapon": 10, "Reputation": 5, "Honor": 5 } },
+      "overrides": {
+        "worldserver.conf": {
+          "AllFlightPaths": "1", "InstantFlightPaths": "2",
+          "Rate.Rest.InGame": "3", "Rate.Rest.Offline.InTavernOrCity": "3", "Rate.Rest.Offline.InWilderness": "3",
+          "StartPlayerMoney": "1000000", "SkipCinematics": "2", "MailDeliveryDelay": "0"
+        }
+      }
+    },
+    {
+      "id": "hardcore", "icon": "💀", "name": "Hardcore",
+      "tagline": "Every pull matters.",
+      "description": "Original speeds, tougher and more alert monsters, harsh death penalty (heavy gear damage, long resurrection sickness), less rested XP, pricier repairs.",
+      "settings": { "Rates": { "XPKill": 1, "XPQuest": 1, "XPExplore": 1, "Money": 1, "Crafting": 1, "Gathering": 1, "Weapon": 1, "Reputation": 1, "Honor": 1 } },
+      "overrides": {
+        "worldserver.conf": {
+          "Rate.Creature.Normal.Damage": "1.25", "Rate.Creature.Normal.SpellDamage": "1.25",
+          "Rate.Creature.Elite.Elite.HP": "1.25", "Rate.Creature.Elite.RARE.HP": "1.25", "Rate.Creature.Elite.RAREELITE.HP": "1.25",
+          "Rate.Creature.Elite.Elite.Damage": "1.5", "Rate.Creature.Elite.RARE.Damage": "1.5", "Rate.Creature.Elite.RAREELITE.Damage": "1.5",
+          "Rate.Creature.Elite.Elite.SpellDamage": "1.5", "Rate.Creature.Elite.RARE.SpellDamage": "1.5", "Rate.Creature.Elite.RAREELITE.SpellDamage": "1.5",
+          "Rate.Creature.Aggro": "1.25",
+          "DurabilityLoss.OnDeath": "25", "DurabilityLoss.OnSpiritResurrect": "50", "Death.SicknessLevel": "-10",
+          "Death.CorpseReclaimDelay.PvE": "1",
+          "Rate.Rest.InGame": "0.5", "Rate.Rest.Offline.InTavernOrCity": "0.5", "Rate.Rest.Offline.InWilderness": "0.5",
+          "Rate.RepairCost": "2"
+        }
+      }
+    },
+    {
+      "id": "endgame", "icon": "🏆", "name": "Instant endgame",
+      "tagline": "Skip leveling: start at the top.",
+      "description": "New characters start at the maximum level with 5000 gold, every flight path and the whole map revealed. Bots are max level too, ready for dungeons and PvP. (Existing characters keep their level.)",
+      "settings": { "BotsStartAtLevel1": false, "BotsAutoBattlegrounds": true },
+      "overrides": {
+        "worldserver.conf": {
+          "StartPlayerLevel": "{MaxLevel}", "StartPlayerMoney": "50000000",
+          "AllFlightPaths": "1", "PlayerStart.MapsExplored": "1", "SkipCinematics": "2"
+        },
+        "modules/playerbots.conf": { "AiPlayerbot.RandomBotMinLevel": "{MaxLevel}", "AiPlayerbot.RandomBotMaxLevel": "{MaxLevel}" }
+      }
+    },
+    {
+      "id": "brawl", "icon": "⚔", "name": "Battleground brawl",
+      "tagline": "PvP all day with bot teams.",
+      "description": "5x honor, bots fill battlegrounds on their own, short preparation, no deserter penalty, no gear damage in PvP, queues announced in chat, XP for battleground kills.",
+      "settings": { "Rates": { "Honor": 5 }, "BotsAutoBattlegrounds": true },
+      "overrides": {
+        "worldserver.conf": {
+          "Battleground.CastDeserter": "0", "Battleground.QueueAnnouncer.Enable": "1", "Battleground.GiveXPForKills": "1",
+          "Battleground.PrepTime": "30", "DurabilityLoss.InPvP": "0", "Rate.ArenaPoints": "2"
+        },
+        "modules/playerbots.conf": { "AiPlayerbot.RandomBotJoinBG": "1" }
+      }
+    },
+    {
+      "id": "together", "icon": "🤝", "name": "Friends & family",
+      "tagline": "Horde and Alliance play together.",
+      "description": "Group, guild, chat, trade on one auction house and use the calendar across factions, so everyone can play together whatever they picked. Instant mail and double rested XP.",
+      "settings": {},
+      "overrides": {
+        "worldserver.conf": {
+          "AllowTwoSide.Interaction.Group": "1", "AllowTwoSide.Interaction.Guild": "1", "AllowTwoSide.Interaction.Chat": "1",
+          "AllowTwoSide.Interaction.Channel": "1", "AllowTwoSide.Interaction.Auction": "1", "AllowTwoSide.Interaction.Calendar": "1",
+          "AllowTwoSide.Interaction.Arena": "1", "AllowTwoSide.Accounts": "1",
+          "MailDeliveryDelay": "0",
+          "Rate.Rest.InGame": "2", "Rate.Rest.Offline.InTavernOrCity": "2", "Rate.Rest.Offline.InWilderness": "2"
+        }
+      }
+    },
+    {
+      "id": "laptop", "icon": "🔋", "name": "Laptop mode",
+      "tagline": "Lighter on CPU and memory.",
+      "description": "Half the bots, fewer bots busy far away from you, a shorter view distance and a gentler startup. Good for laptops and older PCs.",
+      "settings": { "botsFactor": 0.5 },
+      "overrides": {
+        "worldserver.conf": { "Visibility.Distance.Continents": "70" },
+        "modules/playerbots.conf": { "AiPlayerbot.BotActiveAlone": "5", "AiPlayerbot.botActiveAloneSmartScale": "1", "AiPlayerbot.RandomBotsPerInterval": "30" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+name: ✨ Feature request
+description: Suggest an idea for the app
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What would you like the app to do, and why would it help?
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Mock-ups, links to modules, examples from other tools...

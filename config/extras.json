@@ -1,0 +1,1155 @@
+﻿{
+  "_comment": "Catalog for the 'Extra settings' window. Each item maps to one or more options in a server .conf file. Items whose file or option does not exist on a server (module not installed, option renamed) are hidden automatically. types: bool (on/off values, default 1/0), number (min/max), gold (stored as copper), choice (options [value,label]), ratio (two keys that add up to 100), flags (comma list, options [value,label]). 'keys' sets several options to the same value. minExpansion: 1 = TBC, 2 = WotLK.",
+  "groups": [
+    {
+      "title": "Getting around",
+      "icon": "🗺",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "key": "AllFlightPaths",
+          "type": "bool",
+          "label": "Every flight path is known from the start",
+          "help": "New and existing characters can fly anywhere without discovering flight masters first."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "InstantFlightPaths",
+          "type": "choice",
+          "label": "Instant flights",
+          "help": "Arrive immediately instead of watching the flight.",
+          "options": [
+            [
+              "0",
+              "Normal flights"
+            ],
+            [
+              "1",
+              "Always instant"
+            ],
+            [
+              "2",
+              "Instant, each player can switch it at the flight master"
+            ]
+          ]
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "TaxiFlightSpeed",
+          "type": "number",
+          "min": 1,
+          "max": 50,
+          "label": "Flight speed",
+          "help": "32 is the original speed; 50 is the maximum."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.MoveSpeed.Player",
+          "type": "number",
+          "min": 0.5,
+          "max": 3,
+          "label": "Running speed of players",
+          "help": "1 = normal. Also speeds up mounts."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "PlayerStart.MapsExplored",
+          "type": "bool",
+          "label": "World map fully revealed for new characters"
+        }
+      ]
+    },
+    {
+      "title": "New characters",
+      "icon": "✨",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "key": "StartPlayerLevel",
+          "type": "number",
+          "min": 1,
+          "max": 80,
+          "label": "Starting level",
+          "help": "New characters start at this level (cannot be above the game version's maximum)."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "StartPlayerMoney",
+          "type": "gold",
+          "min": 0,
+          "max": 200000,
+          "label": "Starting gold",
+          "help": "Gold in the bags of every new character."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "SkipCinematics",
+          "type": "choice",
+          "label": "Intro movie for new characters",
+          "options": [
+            [
+              "0",
+              "Show it for every new character"
+            ],
+            [
+              "1",
+              "Only for the first character of each race"
+            ],
+            [
+              "2",
+              "Never show it"
+            ]
+          ]
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "PlayerStart.AllReputation",
+          "type": "bool",
+          "label": "Start with high reputation everywhere",
+          "help": "Unlocks most reputation-gated items and mounts right away."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "MaxPrimaryTradeSkill",
+          "type": "number",
+          "min": 0,
+          "max": 11,
+          "label": "Professions per character",
+          "help": "2 is the original limit."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "StartHeroicPlayerLevel",
+          "type": "number",
+          "min": 1,
+          "max": 80,
+          "minExpansion": 2,
+          "label": "Death Knight starting level"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "CharacterCreating.MinLevelForHeroicCharacter",
+          "type": "number",
+          "min": 0,
+          "max": 80,
+          "minExpansion": 2,
+          "label": "Level needed before you can create a Death Knight",
+          "help": "0 = no requirement."
+        }
+      ]
+    },
+    {
+      "title": "Leveling & rest",
+      "icon": "📈",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "keys": [
+            "Rate.Rest.InGame",
+            "Rate.Rest.Offline.InTavernOrCity",
+            "Rate.Rest.Offline.InWilderness"
+          ],
+          "type": "number",
+          "min": 0,
+          "max": 10,
+          "label": "Rested XP builds up",
+          "help": "How fast rested (bonus) XP accumulates while logged out or in an inn. 1 = normal."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Rest.MaxBonus",
+          "type": "number",
+          "min": 0,
+          "max": 10,
+          "label": "Maximum rested XP (in levels)",
+          "help": "1.5 = the original cap of one and a half levels."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Talent",
+          "type": "number",
+          "min": 1,
+          "max": 5,
+          "label": "Talent points per level",
+          "help": "1 = one point per level (original). Higher fills the talent trees sooner."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Skill.Discovery",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "label": "Chance to discover new recipes",
+          "help": "Multiplier for alchemy/inscription/tailoring discoveries."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Quests.IgnoreRaid",
+          "type": "bool",
+          "label": "Raid quests can be done in a normal group"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Quests.LowLevelHideDiff",
+          "type": "number",
+          "min": -1,
+          "max": 80,
+          "label": "Hide quests this many levels below you",
+          "help": "-1 shows every quest, however low."
+        }
+      ]
+    },
+    {
+      "title": "Death & repairs",
+      "icon": "☠",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "key": "DurabilityLoss.OnDeath",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "label": "Gear damage when you die (%)",
+          "help": "10 = original."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "DurabilityLoss.OnSpiritResurrect",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "label": "Extra gear damage when reviving at the spirit healer (%)",
+          "help": "25 = original."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "DurabilityLoss.InPvP",
+          "type": "bool",
+          "label": "Gear also gets damaged by PvP deaths"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.RepairCost",
+          "type": "number",
+          "min": 0,
+          "max": 10,
+          "label": "Repair costs",
+          "help": "0 = free repairs, 1 = normal."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Death.SicknessLevel",
+          "type": "number",
+          "min": -10,
+          "max": 81,
+          "label": "Resurrection sickness starts at level",
+          "help": "11 = original. Set it above the maximum level to switch sickness off; -10 = everyone, 10 minutes."
+        },
+        {
+          "file": "worldserver.conf",
+          "keys": [
+            "Death.CorpseReclaimDelay.PvE",
+            "Death.CorpseReclaimDelay.PvP"
+          ],
+          "type": "bool",
+          "label": "Reviving at your corpse takes longer after repeated deaths"
+        }
+      ]
+    },
+    {
+      "title": "Loot & money",
+      "icon": "💰",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "keys": [
+            "Rate.Drop.Item.Poor",
+            "Rate.Drop.Item.Normal"
+          ],
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "label": "Grey and white item drops",
+          "help": "Multiplier. 1 = normal."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Drop.Item.Uncommon",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "label": "Green item drops"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Drop.Item.Rare",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "label": "Blue item drops"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Drop.Item.Epic",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "label": "Purple (epic) item drops"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Auction.Cut",
+          "type": "number",
+          "min": 0,
+          "max": 5,
+          "label": "Auction house fee",
+          "help": "1 = the normal cut of each sale; 0 = no fee."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "MailDeliveryDelay",
+          "type": "number",
+          "min": 0,
+          "max": 86400,
+          "label": "Mail with items arrives after (seconds)",
+          "help": "3600 = one hour (original). 0 = instantly."
+        }
+      ]
+    },
+    {
+      "title": "Monsters & dungeons",
+      "icon": "🐉",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Creature.Normal.HP",
+          "type": "number",
+          "min": 0.1,
+          "max": 10,
+          "label": "Normal monster health",
+          "help": "1 = normal. Applies to non-elite creatures."
+        },
+        {
+          "file": "worldserver.conf",
+          "keys": [
+            "Rate.Creature.Normal.Damage",
+            "Rate.Creature.Normal.SpellDamage"
+          ],
+          "type": "number",
+          "min": 0.1,
+          "max": 10,
+          "label": "Normal monster damage"
+        },
+        {
+          "file": "worldserver.conf",
+          "keys": [
+            "Rate.Creature.Elite.Elite.HP",
+            "Rate.Creature.Elite.RARE.HP",
+            "Rate.Creature.Elite.RAREELITE.HP"
+          ],
+          "type": "number",
+          "min": 0.1,
+          "max": 10,
+          "label": "Elite and rare monster health"
+        },
+        {
+          "file": "worldserver.conf",
+          "keys": [
+            "Rate.Creature.Elite.Elite.Damage",
+            "Rate.Creature.Elite.RARE.Damage",
+            "Rate.Creature.Elite.RAREELITE.Damage",
+            "Rate.Creature.Elite.Elite.SpellDamage",
+            "Rate.Creature.Elite.RARE.SpellDamage",
+            "Rate.Creature.Elite.RAREELITE.SpellDamage"
+          ],
+          "type": "number",
+          "min": 0.1,
+          "max": 10,
+          "label": "Elite and rare monster damage"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Creature.Elite.WORLDBOSS.HP",
+          "type": "number",
+          "min": 0.1,
+          "max": 10,
+          "label": "Boss health",
+          "help": "Dungeon and raid bosses."
+        },
+        {
+          "file": "worldserver.conf",
+          "keys": [
+            "Rate.Creature.Elite.WORLDBOSS.Damage",
+            "Rate.Creature.Elite.WORLDBOSS.SpellDamage"
+          ],
+          "type": "number",
+          "min": 0.1,
+          "max": 10,
+          "label": "Boss damage"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.Creature.Aggro",
+          "type": "number",
+          "min": 0,
+          "max": 3,
+          "label": "How far away monsters notice you",
+          "help": "1 = normal, 0 = monsters never attack first."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Instance.IgnoreLevel",
+          "type": "bool",
+          "label": "Enter dungeons at any level"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Instance.IgnoreRaid",
+          "type": "bool",
+          "label": "Enter raids without being in a raid group"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "DungeonFinder.OptionsMask",
+          "type": "choice",
+          "label": "Dungeon finder",
+          "options": [
+            [
+              "0",
+              "Off"
+            ],
+            [
+              "1",
+              "Dungeon finder only"
+            ],
+            [
+              "3",
+              "Dungeon finder and raid browser"
+            ],
+            [
+              "5",
+              "Dungeon finder and holiday bosses (original)"
+            ],
+            [
+              "7",
+              "Everything"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Horde & Alliance together",
+      "icon": "🤝",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Interaction.Group",
+          "type": "bool",
+          "label": "Players of both factions can group up",
+          "help": "Also lets you invite bots of the other faction."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Interaction.Guild",
+          "type": "bool",
+          "label": "Mixed-faction guilds"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Interaction.Chat",
+          "type": "bool",
+          "label": "Both factions understand each other in say / yell"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Interaction.Channel",
+          "type": "bool",
+          "label": "Both factions share chat channels (General, Trade...)"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Interaction.Auction",
+          "type": "bool",
+          "label": "One auction house for everyone"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Interaction.Calendar",
+          "type": "bool",
+          "label": "Calendar invites across factions"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Interaction.Arena",
+          "type": "bool",
+          "minExpansion": 1,
+          "label": "Mixed-faction arena teams"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "AllowTwoSide.Accounts",
+          "type": "bool",
+          "label": "Characters of both factions on one account"
+        }
+      ]
+    },
+    {
+      "title": "PvP & battlegrounds",
+      "icon": "⚔",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "key": "Battleground.CastDeserter",
+          "type": "bool",
+          "label": "Deserter penalty for leaving a battleground early"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Battleground.QueueAnnouncer.Enable",
+          "type": "bool",
+          "label": "Announce battleground queues in chat"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Battleground.GiveXPForKills",
+          "type": "bool",
+          "label": "Earn XP for kills in battlegrounds"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Battleground.Override.LowLevels.MinPlayers",
+          "type": "number",
+          "min": 0,
+          "max": 40,
+          "label": "Players needed per side to start a battleground",
+          "help": "0 = the normal amount. Lower numbers start games faster (below the maximum level)."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Battleground.PrepTime",
+          "type": "number",
+          "min": 0,
+          "max": 120,
+          "label": "Battleground preparation time (seconds)",
+          "help": "120 = original."
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Battleground.Warsong.Flags",
+          "type": "number",
+          "min": 1,
+          "max": 10,
+          "label": "Flag captures to win Warsong Gulch"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Rate.ArenaPoints",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "minExpansion": 1,
+          "label": "Arena points"
+        }
+      ]
+    },
+    {
+      "title": "Comfort & performance",
+      "icon": "☕",
+      "items": [
+        {
+          "file": "worldserver.conf",
+          "key": "PreventAFKLogout",
+          "type": "choice",
+          "label": "Stay logged in while away (AFK)",
+          "options": [
+            [
+              "0",
+              "No, log out AFK players (original)"
+            ],
+            [
+              "1",
+              "Yes, in cities and other safe zones"
+            ],
+            [
+              "2",
+              "Yes, everywhere"
+            ]
+          ]
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "ActivateWeather",
+          "type": "bool",
+          "label": "Weather (rain, snow, storms)"
+        },
+        {
+          "file": "worldserver.conf",
+          "key": "Visibility.Distance.Continents",
+          "type": "number",
+          "min": 50,
+          "max": 250,
+          "label": "How far away you see players and creatures (yards)",
+          "help": "100 = original. Lower values save CPU with many bots."
+        }
+      ]
+    },
+    {
+      "title": "Bots: world population",
+      "icon": "🤖",
+      "items": [
+        {
+          "file": "modules/playerbots.conf",
+          "keys": [
+            "AiPlayerbot.RandomBotAllianceRatio",
+            "AiPlayerbot.RandomBotHordeRatio"
+          ],
+          "type": "ratio",
+          "label": "Alliance vs Horde bots",
+          "help": "Share of the bots on each side."
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotMinLevel",
+          "type": "number",
+          "min": 1,
+          "max": 80,
+          "label": "Lowest bot level",
+          "help": "Used when bots start at random levels (World settings)."
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotMaxLevel",
+          "type": "number",
+          "min": 1,
+          "max": 80,
+          "label": "Highest bot level"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotXPRate",
+          "type": "number",
+          "min": 0.1,
+          "max": 10,
+          "label": "How fast bots level",
+          "help": "Multiplied with the server's XP speed. 1 = same as you."
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.SyncLevelWithPlayers",
+          "type": "bool",
+          "label": "Bots never out-level the real players"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomGearQualityLimit",
+          "type": "choice",
+          "label": "Best gear bots can have",
+          "options": [
+            [
+              "1",
+              "White (common)"
+            ],
+            [
+              "2",
+              "Green (uncommon)"
+            ],
+            [
+              "3",
+              "Blue (rare)"
+            ],
+            [
+              "4",
+              "Purple (epic)"
+            ],
+            [
+              "5",
+              "Orange (legendary)"
+            ]
+          ]
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotGuildCount",
+          "type": "number",
+          "min": 0,
+          "max": 200,
+          "label": "Number of bot guilds"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotAutoJoinBGRatedArena2v2Count",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "minExpansion": 1,
+          "label": "Bot teams queueing for 2v2 arena"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotAutoJoinBGRatedArena3v3Count",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "minExpansion": 1,
+          "label": "Bot teams queueing for 3v3 arena"
+        }
+      ]
+    },
+    {
+      "title": "Bots: what they do",
+      "icon": "🧭",
+      "items": [
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.AutoDoQuests",
+          "type": "bool",
+          "label": "Bots do quests on their own"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotJoinLfg",
+          "type": "bool",
+          "label": "Bots use the dungeon finder"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotJoinBG",
+          "type": "bool",
+          "label": "Bots join battlegrounds"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.EnableRandomBotTrading",
+          "type": "bool",
+          "label": "Bots trade with players"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotInvitePlayer",
+          "type": "bool",
+          "label": "Bots invite you to groups, raids and guilds"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.BotCheats",
+          "type": "flags",
+          "label": "Bot cheats",
+          "help": "Small advantages that keep bots from getting stuck.",
+          "options": [
+            [
+              "food",
+              "Eat and drink without food"
+            ],
+            [
+              "taxi",
+              "Use every flight path"
+            ],
+            [
+              "raid",
+              "Raid helpers"
+            ],
+            [
+              "gold",
+              "Unlimited gold"
+            ],
+            [
+              "health",
+              "Instant health regeneration"
+            ],
+            [
+              "mana",
+              "Unlimited mana"
+            ],
+            [
+              "power",
+              "Unlimited rage / energy"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Bots: your party",
+      "icon": "🛡",
+      "items": [
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.AllowAccountBots",
+          "type": "bool",
+          "label": "Play your own alts as bots",
+          "help": "In game: .playerbots bot add NAME"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.BotAutologin",
+          "type": "bool",
+          "label": "Your alts log in as bots automatically when you log in"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.MaxAddedBots",
+          "type": "number",
+          "min": 0,
+          "max": 40,
+          "label": "Bots you can control at once"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.SummonWhenGroup",
+          "type": "bool",
+          "label": "Bots teleport to you when they join your group"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.AutoGearQualityLimit",
+          "type": "choice",
+          "label": "Best gear from the 'autogear' command",
+          "options": [
+            [
+              "1",
+              "White (common)"
+            ],
+            [
+              "2",
+              "Green (uncommon)"
+            ],
+            [
+              "3",
+              "Blue (rare)"
+            ],
+            [
+              "4",
+              "Purple (epic)"
+            ],
+            [
+              "5",
+              "Orange (legendary)"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Bots: chat without AI",
+      "icon": "💬",
+      "note": "With AI chatter on, the app turns these off so the AI does the talking. Switching one on here brings that kind of chat back as well.",
+      "items": [
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotTalk",
+          "type": "bool",
+          "label": "Bots talk in general chat"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotEmote",
+          "type": "bool",
+          "label": "Bots use emotes"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.EnableBroadcasts",
+          "type": "bool",
+          "label": "Bots announce loot, quests and level-ups"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotSuggestDungeons",
+          "type": "bool",
+          "label": "Bots look for dungeon groups in chat"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.EnableGreet",
+          "type": "bool",
+          "label": "Bots greet you"
+        }
+      ]
+    },
+    {
+      "title": "Bots: performance",
+      "icon": "⚙",
+      "items": [
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.BotActiveAlone",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "label": "Bots active when no player is near (%)",
+          "help": "Lower = much less CPU. Bots near players are always active."
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.botActiveAloneSmartScale",
+          "type": "bool",
+          "label": "Slow distant bots down automatically when the server is busy"
+        },
+        {
+          "file": "modules/playerbots.conf",
+          "key": "AiPlayerbot.RandomBotsPerInterval",
+          "type": "number",
+          "min": 1,
+          "max": 500,
+          "label": "Bots that log in per wave at startup",
+          "help": "Lower = gentler startup on slower PCs."
+        }
+      ]
+    },
+    {
+      "title": "Auction House bot",
+      "icon": "🏛",
+      "items": [
+        {
+          "file": "modules/mod_ahbot.conf",
+          "keys": [
+            "AuctionHouseBot.Alliance.MinItems",
+            "AuctionHouseBot.Alliance.MaxItems",
+            "AuctionHouseBot.Horde.MinItems",
+            "AuctionHouseBot.Horde.MaxItems"
+          ],
+          "type": "number",
+          "min": 0,
+          "max": 50000,
+          "label": "Items for sale on each faction's auction house"
+        },
+        {
+          "file": "modules/mod_ahbot.conf",
+          "keys": [
+            "AuctionHouseBot.Neutral.MinItems",
+            "AuctionHouseBot.Neutral.MaxItems"
+          ],
+          "type": "number",
+          "min": 0,
+          "max": 50000,
+          "label": "Items for sale on the neutral (goblin) auction house"
+        },
+        {
+          "file": "modules/mod_ahbot.conf",
+          "key": "AuctionHouseBot.EnableSeller",
+          "type": "bool",
+          "on": "true",
+          "off": "false",
+          "label": "The bot puts items up for sale"
+        },
+        {
+          "file": "modules/mod_ahbot.conf",
+          "key": "AuctionHouseBot.Buyer.Enabled",
+          "type": "bool",
+          "on": "true",
+          "off": "false",
+          "label": "The bot buys items you put up for sale"
+        }
+      ]
+    },
+    {
+      "title": "Dungeon Clear",
+      "icon": "🏰",
+      "items": [
+        {
+          "file": "modules/mod_dungeon_clear.conf",
+          "key": "DungeonClear.Enable",
+          "type": "bool",
+          "label": "Dungeon Clear available (.dc commands)"
+        },
+        {
+          "file": "modules/mod_dungeon_clear.conf",
+          "key": "DungeonClear.WaitAtBoss",
+          "type": "bool",
+          "label": "The group waits before each boss"
+        },
+        {
+          "file": "modules/mod_dungeon_clear.conf",
+          "key": "DungeonClear.ClearRoomBeforeBoss",
+          "type": "bool",
+          "label": "Clear the room before pulling a boss"
+        },
+        {
+          "file": "modules/mod_dungeon_clear.conf",
+          "key": "DungeonClear.IgnoreChests",
+          "type": "bool",
+          "on": "0",
+          "off": "1",
+          "label": "Bots open chests on the way"
+        },
+        {
+          "file": "modules/mod_dungeon_clear.conf",
+          "key": "DungeonClear.BetterLootRolling",
+          "type": "bool",
+          "label": "Smarter loot rolls for bots"
+        },
+        {
+          "file": "modules/mod_dungeon_clear.conf",
+          "key": "DungeonClear.PostCombatRez",
+          "type": "bool",
+          "label": "Bots resurrect fallen party members after a fight"
+        }
+      ]
+    },
+    {
+      "title": "Dungeon Master",
+      "icon": "🎲",
+      "items": [
+        {
+          "file": "modules/mod_dungeon_master.conf",
+          "key": "DungeonMaster.Enable",
+          "type": "bool",
+          "label": "Dungeon Master available"
+        },
+        {
+          "file": "modules/mod_dungeon_master.conf",
+          "key": "DungeonMaster.Dungeon.BossCount",
+          "type": "number",
+          "min": 1,
+          "max": 10,
+          "label": "Bosses per random dungeon"
+        },
+        {
+          "file": "modules/mod_dungeon_master.conf",
+          "key": "DungeonMaster.Dungeon.EliteChance",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "label": "Chance a monster is elite (%)"
+        },
+        {
+          "file": "modules/mod_dungeon_master.conf",
+          "key": "DungeonMaster.Rewards.XPMultiplier",
+          "type": "number",
+          "min": 0,
+          "max": 20,
+          "label": "XP reward multiplier"
+        },
+        {
+          "file": "modules/mod_dungeon_master.conf",
+          "key": "DungeonMaster.Rewards.BaseGold",
+          "type": "gold",
+          "min": 0,
+          "max": 100000,
+          "label": "Gold reward per completed dungeon"
+        }
+      ]
+    },
+    {
+      "title": "Mounts on account",
+      "icon": "🐎",
+      "items": [
+        {
+          "file": "modules/mod-mounts-on-account.conf",
+          "key": "moa.enable",
+          "type": "bool",
+          "on": "true",
+          "off": "false",
+          "label": "Share mounts between your characters"
+        },
+        {
+          "file": "modules/mod-mounts-on-account.conf",
+          "key": "moa.enable.learn.on.login",
+          "type": "bool",
+          "on": "true",
+          "off": "false",
+          "label": "Learn the shared mounts on every login"
+        }
+      ]
+    },
+    {
+      "title": "Community modules",
+      "icon": "🧩",
+      "note": "Only the modules installed on this server are listed (Updates > Modules adds more).",
+      "items": [
+        {
+          "file": "modules/AutoBalance.conf",
+          "key": "AutoBalance.Enable.Global",
+          "type": "bool",
+          "label": "AutoBalance: dungeons and raids scale to your group size"
+        },
+        {
+          "file": "modules/AutoBalance.conf",
+          "key": "AutoBalance.MinPlayers",
+          "type": "number",
+          "min": 1,
+          "max": 40,
+          "label": "AutoBalance: scale as if at least this many players are inside",
+          "help": "1 = full solo scaling. Higher keeps instances harder."
+        },
+        {
+          "file": "modules/SoloLfg.conf",
+          "key": "SoloLFG.Enable",
+          "type": "bool",
+          "label": "Solo dungeon finder"
+        },
+        {
+          "file": "modules/mod_learnspells.conf",
+          "key": "LearnSpells.Enable",
+          "type": "bool",
+          "label": "Learn class spells automatically when leveling"
+        },
+        {
+          "file": "modules/mod_learnspells.conf",
+          "key": "LearnSpells.OnFirstLogin",
+          "type": "bool",
+          "label": "Also learn them on a character's first login"
+        },
+        {
+          "file": "modules/mod_aoe_loot.conf",
+          "key": "AOELoot.Enable",
+          "type": "bool",
+          "label": "Area loot"
+        },
+        {
+          "file": "modules/mod_aoe_loot.conf",
+          "key": "AOELoot.Range",
+          "type": "number",
+          "min": 5,
+          "max": 100,
+          "label": "Area loot range (yards)"
+        },
+        {
+          "file": "modules/transmog.conf",
+          "key": "Transmogrification.Enable",
+          "type": "bool",
+          "label": "Transmogrification"
+        },
+        {
+          "file": "modules/transmog.conf",
+          "key": "Transmogrification.EnablePortable",
+          "type": "bool",
+          "label": "Portable transmogrifier (.transmog portable)"
+        },
+        {
+          "file": "modules/random_enchants.conf",
+          "key": "RandomEnchants.Enable",
+          "type": "bool",
+          "label": "Random enchants on items"
+        },
+        {
+          "file": "modules/random_enchants.conf",
+          "key": "RandomEnchants.EnchantChance1",
+          "type": "number",
+          "min": 0,
+          "max": 100,
+          "label": "Chance an item gets a random enchant (%)"
+        },
+        {
+          "file": "modules/dynamicxp.conf",
+          "key": "Dynamic.XP.Rate",
+          "type": "bool",
+          "label": "Dynamic XP (faster leveling at higher levels)"
+        },
+        {
+          "file": "modules/mod_boss_announcer.conf",
+          "key": "Boss.Announcer.Enable",
+          "type": "bool",
+          "label": "Announce raid boss kills"
+        },
+        {
+          "file": "modules/mod_achievements.conf",
+          "key": "Account.Achievements.Enable",
+          "type": "bool",
+          "label": "Account-wide achievements"
+        }
+      ]
+    }
+  ]
+}

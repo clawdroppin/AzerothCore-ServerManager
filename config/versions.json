@@ -1,0 +1,221 @@
+{
+  "core": {
+    "repo": "https://github.com/mod-playerbots/azerothcore-wotlk.git",
+    "branch": "Playerbot"
+  },
+  "modules": [
+    {
+      "name": "mod-playerbots",
+      "repo": "https://github.com/mod-playerbots/mod-playerbots.git",
+      "branch": "master",
+      "required": true,
+      "title": "Playerbots",
+      "description": "Hundreds of AI players who level, quest, group, run dungeons and fight in battlegrounds."
+    },
+    {
+      "name": "mod-ah-bot-plus",
+      "repo": "https://github.com/NathanHandley/mod-ah-bot-plus.git",
+      "branch": "master",
+      "default": true,
+      "title": "Auction House Bot",
+      "description": "Keeps the auction house stocked and buys player listings, for a living economy."
+    },
+    {
+      "name": "mod-dungeon-clear",
+      "repo": "https://github.com/jrad7/mod-dungeon-clear.git",
+      "branch": "master",
+      "default": true,
+      "title": "Dungeon Clear",
+      "description": "Lets a tank bot lead your party through a whole dungeon automatically (.dc on)."
+    },
+    {
+      "name": "mod-llm-chatter",
+      "repo": "https://github.com/Hokken/mod-llm-chatter.git",
+      "branch": "master",
+      "default": true,
+      "llm": true,
+      "title": "AI Bot Chatter",
+      "description": "Bots talk naturally in party, say and general chat using a local AI model (needs a good graphics card)."
+    },
+    {
+      "name": "mod-dungeon-master",
+      "repo": "https://github.com/trauntrow/mod-dungeon-master.git",
+      "branch": "main",
+      "default": true,
+      "title": "Dungeon Master",
+      "description": "Randomly generated dungeon runs and a roguelike challenge mode, from an NPC in each capital."
+    },
+    {
+      "name": "mod-mounts-on-account",
+      "repo": "https://github.com/pangolp/mod-mounts-on-account.git",
+      "branch": "master",
+      "default": true,
+      "title": "Account-wide Mounts",
+      "description": "Mounts learned on one character become available to your other characters."
+    },
+    {
+      "name": "mod-autobalance",
+      "repo": "https://github.com/azerothcore/mod-autobalance.git",
+      "branch": "master",
+      "community": true,
+      "title": "AutoBalance",
+      "description": "Dungeons and raids scale to the size of your group, so you can clear them with a few friends or bots."
+    },
+    {
+      "name": "mod-solo-lfg",
+      "repo": "https://github.com/azerothcore/mod-solo-lfg.git",
+      "branch": "master",
+      "community": true,
+      "title": "Solo Dungeon Finder",
+      "description": "Queue for the dungeon finder alone or in a small group - no full group of five needed."
+    },
+    {
+      "name": "mod-learn-spells",
+      "repo": "https://github.com/azerothcore/mod-learn-spells.git",
+      "branch": "master",
+      "community": true,
+      "title": "Learn Spells Automatically",
+      "description": "New class spells are learned the moment you level up - no trips back to the trainer."
+    },
+    {
+      "name": "mod-aoe-loot",
+      "repo": "https://github.com/azerothcore/mod-aoe-loot.git",
+      "branch": "master",
+      "community": true,
+      "title": "Area Loot",
+      "description": "Loot every nearby corpse at once with a single click."
+    },
+    {
+      "name": "mod-transmog",
+      "repo": "https://github.com/azerothcore/mod-transmog.git",
+      "branch": "master",
+      "community": true,
+      "title": "Transmogrification",
+      "description": "Change how your gear looks. Type .transmog portable in game to call the transmogrifier."
+    },
+    {
+      "name": "mod-account-achievements",
+      "repo": "https://github.com/azerothcore/mod-account-achievements.git",
+      "branch": "master",
+      "community": true,
+      "title": "Account-wide Achievements",
+      "description": "Achievements earned on one character count for all your characters."
+    },
+    {
+      "name": "mod-random-enchants",
+      "repo": "https://github.com/azerothcore/mod-random-enchants.git",
+      "branch": "master",
+      "community": true,
+      "title": "Random Enchants",
+      "description": "Looted, crafted and quest items can roll random bonus enchantments, Diablo style."
+    },
+    {
+      "name": "mod-dynamic-xp",
+      "repo": "https://github.com/azerothcore/mod-dynamic-xp.git",
+      "branch": "master",
+      "community": true,
+      "title": "Dynamic XP",
+      "description": "Leveling speeds up the higher you get, so the long middle levels go faster (on top of the XP speed)."
+    },
+    {
+      "name": "mod-boss-announcer",
+      "repo": "https://github.com/azerothcore/mod-boss-announcer.git",
+      "branch": "master",
+      "community": true,
+      "title": "Boss Kill Announcements",
+      "description": "Tells the whole server when a group defeats a raid boss."
+    },
+    {
+      "name": "mod-skip-dk-starting-area",
+      "repo": "https://github.com/azerothcore/mod-skip-dk-starting-area.git",
+      "branch": "master",
+      "community": true,
+      "minExpansion": 2,
+      "title": "Skip the Death Knight Intro",
+      "description": "New Death Knights can skip the long starting quest chain (Wrath only)."
+    },
+    {
+      "name": "mod-individual-progression",
+      "repo": "https://github.com/ZhengPeiRu21/mod-individual-progression.git",
+      "branch": "master",
+      "community": true,
+      "title": "Individual Progression",
+      "description": "Every character travels through Vanilla, then Burning Crusade, then Wrath at their own pace, with the original content restored.",
+      "note": "Big change to the world: best chosen for a new server, with Game version set to Full Wrath.",
+      "config": {
+        "worldserver.conf": {
+          "EnablePlayerSettings": "1",
+          "DBC.EnforceItemAttributes": "0"
+        }
+      }
+    }
+  ],
+  "prereqs": {
+    "boost": {
+      "version": "1.81.0",
+      "dir": "C:\\local\\boost_1_81_0",
+      "url": "https://downloads.sourceforge.net/project/boost/boost-binaries/1.81.0/boost_1_81_0-msvc-14.3-64.exe"
+    },
+    "mysql": {
+      "version": "8.4.11",
+      "url": "https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-8.4.11-winx64.zip"
+    },
+    "pythonSeries": "3.13",
+    "vsBuildTools": "https://aka.ms/vs/17/release/vs_BuildTools.exe",
+    "vcRedist": "https://aka.ms/vs/17/release/vc_redist.x64.exe",
+    "ollama": "https://ollama.com/download/OllamaSetup.exe",
+    "tailscale": "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe",
+    "opensslHashes": "https://raw.githubusercontent.com/slproweb/opensslhashes/master/win32_openssl_hashes.json",
+    "clientDataFallbackVersion": "v20.0"
+  },
+  "addons": [
+    {
+      "name": "MultiBot",
+      "repo": "Macx-Lio/MultiBot",
+      "branch": "main",
+      "folder": "MultiBot",
+      "title": "MultiBot",
+      "description": "Buttons and menus to control your bots (invite, follow, stay, attack, strategies) instead of typing commands."
+    },
+    {
+      "name": "DungeonClear",
+      "repo": "jrad7/mod-dungeon-clear-addon",
+      "branch": "master",
+      "folder": "DungeonClear",
+      "module": "mod-dungeon-clear",
+      "title": "Dungeon Clear panel",
+      "description": "On / Off / Skip / Pause buttons and a boss list for automatic dungeon clears."
+    },
+    {
+      "name": "Chatter",
+      "repo": "Hokken/Chatter-Companion",
+      "branch": "main",
+      "folder": "Chatter",
+      "module": "mod-llm-chatter",
+      "title": "Chatter Companion",
+      "description": "See and edit your bots' personalities and backstories for the AI chatter (/chatter)."
+    }
+  ],
+  "llmModels": [
+    {
+      "name": "gemma4:12b",
+      "vramGB": 12,
+      "label": "Gemma 4 12B (recommended, ~8 GB download)"
+    },
+    {
+      "name": "ministral-3:14b",
+      "vramGB": 13,
+      "label": "Ministral 3 14B (~9 GB download)"
+    },
+    {
+      "name": "ministral-3:8b",
+      "vramGB": 8,
+      "label": "Ministral 3 8B - for 8-10 GB graphics cards (~6 GB download)"
+    },
+    {
+      "name": "gemma4:26b-a4b",
+      "vramGB": 21,
+      "label": "Gemma 4 26B - for 24 GB graphics cards (~17 GB download)"
+    }
+  ]
+}
