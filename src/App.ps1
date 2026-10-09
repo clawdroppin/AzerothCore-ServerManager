@@ -924,7 +924,19 @@ function Build-SettingsForm([Windows.Controls.Panel]$container, $s, [switch]$Wiz
 
         # ---- performance
         $pf = New-Card 'Performance (set automatically for this PC)' $container
-        $f.DbPort = New-Text $s.DbPort 90; Add-Row $pf 'Database port' $f.DbPort 'Changed automatically if another database already uses 3306.' | Out-Null
+        $shared = Get-SharedDbPort
+        $f.DbMode = New-Object Windows.Controls.ComboBox; $f.DbMode.Width = 560; $f.DbMode.HorizontalAlignment = 'Left'
+        foreach ($o in @(@('shared', "Shared port $shared (recommended) - all your servers use it; starting a server swaps its database in"),
+                         @('own', 'Its own port - this database can stay available while another server runs'))) {
+            $i = New-Object Windows.Controls.ComboBoxItem; $i.Tag = $o[0]; $i.Content = $o[1]; [void]$f.DbMode.Items.Add($i)
+        }
+        $f.DbMode.SelectedIndex = if ($s.DbPortMode -eq 'own') { 1 } else { 0 }
+        $f.DbPort = New-Text $(if ($s.DbPortMode -eq 'own') { $s.DbPort } else { Get-FreeDbPort }) 90; $f.DbPort.Margin = '0,6,0,0'
+        $dbBox = New-Object Windows.Controls.StackPanel; [void]$dbBox.Children.Add($f.DbMode); [void]$dbBox.Children.Add($f.DbPort)
+        $syncDb = { $f.DbPort.Visibility = if ($f.DbMode.SelectedItem.Tag -eq 'own') { 'Visible' } else { 'Collapsed' } }.GetNewClosure()
+        $f.DbMode.Add_SelectionChanged($syncDb); & $syncDb
+        Add-Row $pf 'Database port' $dbBox ('Only used inside this PC - it never needs port forwarding. Friends only ever need the game ports 3724 and 8085, ' +
+            'which are the same for every server. Only one server runs at a time either way.') | Out-Null
         $f.Buffer = New-Text $s.BufferPoolGB 90; Add-Row $pf 'Database memory (GB)' $f.Buffer 'About a quarter of your RAM, max 16.' | Out-Null
     }
     $adv = New-Card 'Advanced' $container
@@ -961,7 +973,8 @@ function Read-SettingsForm($f, $s) {
         if (-not $s.PSObject.Properties['ConfOverrides']) { $s | Add-Member -NotePropertyName ConfOverrides -NotePropertyValue ([pscustomobject]@{}) -Force }
         Update-ModuleConfigOverrides $s $V.modules
         $s.Llm.Model = $f.Model.SelectedItem.Tag
-        $s.DbPort = [int](Read-Number $f.DbPort 'Database port' 1024 65000)
+        $s | Add-Member -NotePropertyName DbPortMode -NotePropertyValue $f.DbMode.SelectedItem.Tag -Force
+        $s.DbPort = if ($s.DbPortMode -eq 'shared') { Get-SharedDbPort } else { [int](Read-Number $f.DbPort 'Database port' 1024 65000) }
         $s.BufferPoolGB = [int](Read-Number $f.Buffer 'Database memory' 1 64)
     }
     $s
@@ -1996,7 +2009,8 @@ $ui.BtnImport.Add_Click({
         $s | Add-Member -NotePropertyName $p.Name -NotePropertyValue $p.Value -Force
     }
     $s.RootDir = $root; $s.MySqlDir = Join-Path $root 'mysql'; $s.MySqlService = Get-UniqueMySqlServiceName $root
-    $s.DbPort = Get-FreeDbPort; $s.WowExe = $ui.TxtImpWow.Text; $s.PlayerPass = ''; $s.MySqlStopWithServer = $true
+    $s | Add-Member -NotePropertyName DbPortMode -NotePropertyValue 'shared' -Force
+    $s.DbPort = Get-SharedDbPort; $s.WowExe = $ui.TxtImpWow.Text; $s.PlayerPass = ''; $s.MySqlStopWithServer = $true
     $s.DataDir = if ((Get-AppPrefs).ShareMapData) { Get-SharedDataDir } else { '' }
     $s | Add-Member -NotePropertyName CoreRevision -NotePropertyValue $m.CoreRevision -Force
     $s | Add-Member -NotePropertyName ClientDataVersion -NotePropertyValue $m.ClientDataVersion -Force
@@ -2101,6 +2115,7 @@ function Get-DefaultRoot([string]$Name = 'Azeroth Reborn') {
 function Get-FreeDbPort {
     # Each server has its own database port; skip ports in use now AND ports owned by stopped servers.
     $taken = @(foreach ($r in Get-ServerRegistry) { try { [int](Get-ServerSettings $r.RootDir).DbPort } catch {} })
+    $taken += Get-SharedDbPort
     foreach ($p in 3307..3399) {
         if ($taken -notcontains $p -and -not (Test-PortListening $p)) { return $p }
     }
@@ -2131,7 +2146,7 @@ function New-DefaultSettings {
         Modules = @($V.modules | Where-Object { ($_.required -or $_.default) -and (-not $_.llm -or $llmOk) } | ForEach-Object name)
         Llm = [pscustomobject]@{ Enabled = $llmOk; Model = $model; Preset = 'default' }
         PlayerUser = ''; PlayerPass = ''; PlayerIsGm = $true
-        DbPort = Get-FreeDbPort; SoapPort = 7878; MySqlService = Get-MySqlServiceName $root; MySqlDir = (Join-Path $root 'mysql')
+        DbPortMode = 'shared'; DbPort = Get-SharedDbPort; SoapPort = 7878; MySqlService = Get-MySqlServiceName $root; MySqlDir = (Join-Path $root 'mysql')
         BufferPoolGB = [math]::Max(2, [math]::Min(16, [math]::Floor($Machine.RamGB / 4)))
         MapThreads = [math]::Max(2, [math]::Min(8, [math]::Floor($Machine.Cores / 2)))
         CharDbWorkers = 2; AhBotGuids = ''; BackupKeep = 10; PublicAddress = ''; LocalAddress = ''
@@ -2173,7 +2188,7 @@ function Enter-Wizard {
     } elseif ($script:DuplicateRequest) {
         $src = Get-ServerSettings $script:DuplicateRequest.From
         foreach ($p in $src.PSObject.Properties) {
-            if ($p.Name -in 'RootDir', 'MySqlDir', 'MySqlService', 'DbPort', 'DataDir', 'AhBotGuids', 'PublicAddress', 'LocalAddress', 'InstallMode', 'ImportPackage', 'RestorePackage', 'ClientDataVersion') { continue }
+            if ($p.Name -in 'RootDir', 'MySqlDir', 'MySqlService', 'DbPort', 'DbPortMode', 'DataDir', 'AhBotGuids', 'PublicAddress', 'LocalAddress', 'InstallMode', 'ImportPackage', 'RestorePackage', 'ClientDataVersion') { continue }
             $script:WizSettings | Add-Member -NotePropertyName $p.Name -NotePropertyValue $p.Value -Force
         }
         $script:WizSettings.RealmName = "$($src.RealmName) Copy"
@@ -2257,6 +2272,15 @@ $ui.WizNext.Add_Click({
                 $s.RootDir = $root; $s.MySqlDir = Join-Path $root 'mysql'; $s.WowExe = $ui.TxtWow.Text
                 $s.PlayerUser = $u.ToUpper(); $s.PlayerPass = $ui.TxtPass.Password; $s.PlayerIsGm = [bool]$ui.ChkGm.IsChecked
                 $s.MySqlService = Get-UniqueMySqlServiceName $root
+                # "Own port" servers must not reuse a port another server (running or not) owns. Shared-port servers
+                # share on purpose: their databases are swapped when a server starts.
+                $owner = Get-ServerRegistry | Where-Object { $_.RootDir.TrimEnd('\') -ne $root } |
+                    Where-Object { try { [int](Get-ServerSettings $_.RootDir).DbPort -eq [int]$s.DbPort } catch { $false } } | Select-Object -First 1
+                $resuming = Test-Path (Join-Path $root '.creationtool\state.json')
+                if ($s.DbPortMode -ne 'shared' -and ($owner -or (-not $resuming -and (Test-PortListening ([int]$s.DbPort))))) {
+                    $old = $s.DbPort; $s.DbPort = Get-FreeDbPort
+                    Show-Message "Database port $old is already used by $(if ($owner) { "'$($owner.Name)'" } else { 'another program' }), so this server uses port $($s.DbPort) instead." 'Database port' 'Information'
+                }
             } catch { Show-Message $_.Exception.Message 'Please check your settings' 'Warning'; return }
             if (-not (Confirm-Action "Ready to build your server in:`n$($s.RootDir)`n`nThis takes about 1-2 hours. Windows may ask for permission a few times.`n`nStart now?" 'Start install')) { return }
             $script:WizSettings = $s

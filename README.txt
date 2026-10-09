@@ -40,6 +40,11 @@ HOW SEVERAL SERVERS WORK
 - Only ONE server runs at a time (the WoW client always uses the same login port). Starting
   another one offers to stop the running one first.
 - A server's database only runs while that server runs, so idle servers use no memory.
+- Database port: when creating a server you choose "Shared port" (recommended - every server uses the same
+  database port and starting one swaps its database in automatically) or "Its own port" (its database can stay
+  available while another server runs). The database port is only used inside this PC and never needs port
+  forwarding; online play only ever needs the game ports 3724 and 8085, the same for every server.
+  Every connection is checked to reach the right server's database, so a shared port is safe.
   (The app wakes it briefly when you look at accounts/characters, and puts it back to sleep.)
 
 

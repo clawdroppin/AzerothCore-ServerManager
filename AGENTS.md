@@ -112,6 +112,20 @@ Server folder   ─► tools\ServerControl.ps1 (Start/Stop/Restart/Status/Monito
 - `Sync-ServerTools` copies `payload\tools\*` and `payload\*.bat` into each server whenever the hashes differ
   (called before applying config, starting, backing up and updating), so fixes reach existing servers.
 
+### Database ports (shared or own)
+
+- `DbPortMode` in a server's settings: `'shared'` (default for new and imported servers) or `'own'` (older servers).
+  Shared-mode servers all use `Get-SharedDbPort` (remembered in the preferences as `SharedDbPort`). Own-mode servers
+  get a unique port from `Get-FreeDbPort`.
+- `payload\tools\DbSlot.ps1` is shared by the app (dot-sourced by `Manage.ps1`), `ServerControl.ps1` and `Backup-Server.ps1`:
+  - `Enter-DatabaseSlot` swaps: it stops another *AzerothCoreMySQL_* service holding the port, unless that server's
+    worldserver is running (then it throws and changes nothing). It refuses outright if a different program owns the port.
+  - `Test-DatabaseIdentity` compares MySQL's `@@datadir` (use `-r` raw output: batch mode doubles backslashes) with
+    `<root>\database\data`. `Assert-ServerDatabase` (Manage) caches the result per listening process. `Invoke-ServerSql`,
+    `Invoke-MySql` (install steps), ServerControl Start and the backup script all verify before touching data.
+  - MySQL 8.4 listens from a **child** of the service process, so find the service through the parent PID.
+- The database port is internal only (MySQL binds 127.0.0.1). Online play only ever needs 3724 and 8085.
+
 ### Background tasks
 
 ```powershell
@@ -218,6 +232,7 @@ WoW server is running, since they share ports 3724 / 8085 / 7878.
 | `Get-Content -ErrorAction SilentlyContinue` still adds to `$Error` (and the self-test counts `$Error`). | Guard with `Test-Path`. |
 | Setting `Owner` on a dialog fails when the main window isn't shown (self-test). | `New-ThemedWindow` sets the owner only if `$Window.IsVisible`. |
 | Multi-line `.Replace()` on files fails silently on CRLF/LF mismatch. | Normalize line endings and assert the match count when patching. |
+| Several app-made databases on one port | Always go through `Enter-DatabaseSlot` before starting a database service, and verify with `Test-DatabaseIdentity` / `Assert-ServerDatabase` before reading or writing. |
 | A shared settings file read by several processes can be caught mid-write and come back empty. | `servers.json` is written atomically (`.tmp` → `File.Replace` with `.bak`), and reads retry and fall back to `.bak`. Never treat an unreadable file as "empty list". |
 | Servers launched from a tool shell die with that shell (job object). | `Start-GameServer` launches through `explorer.exe START_SERVER.bat`, so the server is independent of the app. |
 

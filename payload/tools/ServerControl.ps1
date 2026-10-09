@@ -28,6 +28,7 @@ if (-not (Test-Path (Join-Path $BridgeDir 'llm_chatter_bridge.py'))) { $BridgeDi
 $BridgePython = Join-Path $ServerDir 'llm-bridge-venv\Scripts\python.exe'
 $BridgeConf   = Join-Path $ServerDir 'configs\modules\mod_llm_chatter.conf'
 $Ports = @{ MySQL = [int]$Settings.DbPort; Auth = 3724; World = 8085; Soap = [int]$Settings.SoapPort; Ollama = 11434 }
+. (Join-Path $PSScriptRoot 'DbSlot.ps1')   # shared database port: swap databases, check identity
 
 New-Item -ItemType Directory -Force $LogDir | Out-Null
 # Inherited by authserver/worldserver: create missing databases (e.g. acore_playerbots) without prompting.
@@ -127,11 +128,16 @@ function Start-MySql {
     $svc = Get-Service $MySqlService -ErrorAction SilentlyContinue
     if (-not $svc) { throw "MySQL service '$MySqlService' not found." }
     if ($svc.Status -ne 'Running') {
+        # Shared database port: another server's database may be holding it - swap it out first.
+        $holder = Get-DbPortService $Ports.MySQL
+        if ($holder -and $holder.Name -and $holder.Name -ne $MySqlService) { Write-Log "Database port $($Ports.MySQL) is held by $($holder.Name); swapping in this server's database." }
+        Enter-DatabaseSlot $Root $Settings
         Write-Log "Starting $MySqlService (admin prompt may appear)..."
         try { Start-Service $MySqlService }
         catch { Start-Process powershell -Verb RunAs -Wait -ArgumentList "-NoProfile -Command Start-Service $MySqlService" }
     }
     if (-not (Wait-Port $Ports.MySQL 60 'MySQL' $null)) { throw 'MySQL failed to start.' }
+    if (-not (Test-DatabaseIdentity $Root $Settings)) { throw "The database on port $($Ports.MySQL) belongs to another server. Stop that server first (or run Check & repair in the app)." }
     Write-Log "MySQL is running on port $($Ports.MySQL)." 'OK'
 }
 

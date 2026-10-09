@@ -5,6 +5,18 @@ versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-09
+### Added
+- **Database port choice** when creating a server: a *shared port* (recommended; every server uses the same database
+  port and starting one swaps its database in automatically) or *its own port* (its database can stay available while
+  another server runs). Imported servers use the shared port. The database port never needs port forwarding.
+- Every connection to a database (app, START/STOP scripts, scheduled backups, install steps) checks that it reached
+  the right server's data, so a shared port can never read or change another server's characters.
+
+### Fixed
+- The wizard could suggest a database port that already belonged to another (stopped) server.
+- A resumed install (for example after a reboot) now starts the new server's database before continuing.
+
 ## [1.0.0] - 2026-10-09
 First public release.
 

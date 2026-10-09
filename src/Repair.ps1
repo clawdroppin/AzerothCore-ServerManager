@@ -314,8 +314,13 @@ $RepairChecks = @(
 @{ Id = 'dbrun'; Area = 'Database'; Name = 'Database running'
    Test = {
        param($c)
-       if (Test-PortListening ([int]$c.S.DbPort)) { return @{ Status = 'OK'; Detail = "Port $($c.S.DbPort)" } }
-       try { Start-ServerDatabase $c.Root } catch {}
+       $svc = Get-Service $c.S.MySqlService -ErrorAction SilentlyContinue
+       if ((Test-PortListening ([int]$c.S.DbPort)) -and (-not $svc -or $svc.Status -eq 'Running')) { return @{ Status = 'OK'; Detail = "Port $($c.S.DbPort)$(if ($c.S.DbPortMode -eq 'shared') { ' (shared port)' })" } }
+       $why = $null
+       try { Start-ServerDatabase $c.Root } catch { $why = $_.Exception.Message }
+       # Shared database port in use by another server that is running: not a fault, just not checkable now.
+       if ($why -match 'is running and is using the shared database port') { return @{ Status = 'Skipped'; Detail = $why } }
+       if ($why -match 'used by another program') { return @{ Status = 'Problem'; Detail = $why } }
        if (Test-PortListening ([int]$c.S.DbPort)) { return @{ Status = 'OK'; Detail = "Started it for this check (port $($c.S.DbPort))" } }
        $why = Get-MySqlErrorTail $c
        @{ Status = 'Problem'; Detail = "The database does not start.$(if ($why) { " Its log says: $why" } else { '' })" }
@@ -326,6 +331,7 @@ $RepairChecks = @(
    Test = {
        param($c)
        if (-not (Test-PortListening ([int]$c.S.DbPort))) { return @{ Status = 'Skipped'; Detail = 'The database is not running.' } }
+       if (-not (Test-DatabaseIdentity $c.Root $c.S)) { return @{ Status = 'Problem'; Detail = "The database answering on port $($c.S.DbPort) belongs to another server. Start this server so it swaps its own database in, or give one of them its own port." } }
        try { Get-RepairSql $c 'SELECT 1;' | Out-Null; $c.DbOk = $true; return $null }
        catch {
            $root = Join-Path $c.Root 'secrets\mysql-root.txt'

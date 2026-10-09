@@ -22,12 +22,22 @@ $Protected = 'before-update', 'savepoint'
 function Log($m) { Add-Content $log ('{0} {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $m); Write-Output $m }
 
 # With "stop database with server" the database may be off: start it for the backup, stop it again after.
+# With a shared database port another server's database may hold the port: swap it out (never while that server runs).
+. (Join-Path $PSScriptRoot 'DbSlot.ps1')
 $startedDb = $false
 $svc = Get-Service $S.MySqlService -ErrorAction SilentlyContinue
 if ($svc -and $svc.Status -ne 'Running') {
+    try { Enter-DatabaseSlot $Root $S }
+    catch {
+        # Nothing changed on this server since it stopped, so skipping is harmless; the next backup catches up.
+        Log "Backup skipped: $($_.Exception.Message)"; Remove-Item $work -Recurse -Force; exit 2
+    }
     Start-Service $S.MySqlService
     for ($i = 0; $i -lt 60 -and -not (Get-NetTCPConnection -LocalPort $S.DbPort -State Listen -ErrorAction SilentlyContinue); $i++) { Start-Sleep 1 }
     $startedDb = $true
+}
+if (-not (Test-DatabaseIdentity $Root $S)) {
+    Log "Backup stopped: the database on port $($S.DbPort) belongs to another server."; Remove-Item $work -Recurse -Force; exit 1
 }
 
 $ErrorActionPreference = 'Continue'   # mysql tools print a password warning on stderr

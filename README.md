@@ -42,7 +42,7 @@ run dungeons and fight in battlegrounds alongside you. You don't need any progra
 | 👥 **Play with friends** | Same house, a free VPN (Tailscale), or port forwarding. It sets up the firewall rules and gives you a "join kit" to send your friends. Optional **Discord notifications** cover online/offline, logins, crashes and updates. |
 | 💾 **Backups & moving** | Daily backups, save points you can roll back to, an extra copy on another drive or cloud folder, and **export the whole server to one file** to move it to a laptop with no compiling needed. |
 | 🧩 **Modules on a switch** | Auction House Bot, Dungeon Clear, AI Chatter, Dungeon Master, account-wide mounts, plus 11 community modules (AutoBalance, Transmog, Solo dungeon finder, Individual Progression...). Each one is added or removed through the same safe pipeline. |
-| 🖥️ **Several servers** | Each server lives in its own folder with its own database. One runs at a time, and idle servers use no memory. Duplicate a server, copy characters between servers, and run timed events like double-XP weekends. |
+| 🖥️ **Several servers** | Each server lives in its own folder with its own database. One runs at a time, and idle servers use no memory. By default all servers **share one database port** and starting a server swaps its database in automatically (every connection is checked to reach the right server's data). Duplicate a server, copy characters between servers, and run timed events like double-XP weekends. |
 
 ---
 
@@ -255,6 +255,15 @@ below 16 GB of RAM, 250 with 16 GB, 500 with 32 GB and 800 with 48 GB or more. A
 
 Only `realmlist.wtf` and the realm entries in `WTF\Config.wtf`, so the client connects to your server.
 The originals are backed up to `<server>\.creationtool\client-backup\`.
+</details>
+
+<details>
+<summary><b>Which ports do I need to forward for online play?</b></summary>
+
+Only the two game ports: **3724** (login) and **8085** (game). They're the same for every server you make. The
+database port is only used inside your PC, so it never needs forwarding. When you create a server you choose between
+a **shared database port** (recommended: one port for all your servers, swapped automatically when you start one) or
+**its own port** (that server's database can stay available while another server runs).
 </details>
 
 <details>

@@ -27,6 +27,8 @@ function Get-DownloadDir {
 
 function Invoke-MySql([string]$Sql, [string]$Database = '', [string]$User = 'acore', [string]$Password = 'acore') {
     $ErrorActionPreference = 'Continue'   # mysql writes warnings to stderr; rely on exit code
+    # With a shared database port, make sure this really is this server's database.
+    if (Get-Command Assert-ServerDatabase -ErrorAction SilentlyContinue) { Assert-ServerDatabase $Root $S }
     $mysql = Join-Path $S.MySqlDir 'bin\mysql.exe'
     $cli = @("-u$User", '--host=127.0.0.1', "--port=$($S.DbPort)", '-N', '-B')
     if ($Password) { $cli += "-p$Password" }
@@ -34,6 +36,16 @@ function Invoke-MySql([string]$Sql, [string]$Database = '', [string]$User = 'aco
     $out = $Sql | & $mysql @cli 2>&1
     if ($LASTEXITCODE -ne 0) { throw "MySQL error: $(($out | Where-Object { $_ -notmatch 'Using a password' }) -join ' ')" }
     $out | Where-Object { $_ -notmatch 'Using a password' }
+}
+
+function Initialize-InstallDatabase {
+    # Steps after "mysql" need this server's database running (also after a reboot or a resumed install).
+    # With a shared database port another server's database may hold the port: swap it out first.
+    $svc = Get-Service $S.MySqlService -ErrorAction SilentlyContinue
+    if (-not $svc -or $svc.Status -eq 'Running') { return }
+    if (Get-Command Enter-DatabaseSlot -ErrorAction SilentlyContinue) { Enter-DatabaseSlot $Root $S }
+    Start-Service $S.MySqlService
+    for ($i = 0; $i -lt 60 -and -not (Test-PortListening $S.DbPort); $i++) { Start-Sleep 1 }
 }
 
 function Save-SettingsFile {
@@ -277,7 +289,11 @@ innodb_lock_wait_timeout = 120
     # Same as Windows' default service permissions, plus start (RP), stop (WP) and pause (DT) for interactive users (IU).
     $sddl = 'D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPDTLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)'
     Invoke-Native "$env:SystemRoot\System32\sc.exe" "sdset $($S.MySqlService) $sddl" -Quiet | Out-Null
-    if ((Get-Service $S.MySqlService).Status -eq 'Running') { Restart-Service $S.MySqlService -Force } else { Start-Service $S.MySqlService }
+    if ((Get-Service $S.MySqlService).Status -eq 'Running') { Restart-Service $S.MySqlService -Force }
+    else {
+        if (Get-Command Enter-DatabaseSlot -ErrorAction SilentlyContinue) { Enter-DatabaseSlot $Root $S }   # shared database port
+        Start-Service $S.MySqlService
+    }
     for ($i = 0; $i -lt 60 -and -not (Test-PortListening $S.DbPort); $i++) { Start-Sleep 1 }
     if (-not (Test-PortListening $S.DbPort)) { throw "MySQL did not start. See $Root\database\mysql-error.log" }
 
@@ -580,6 +596,7 @@ function Invoke-Install {
         Set-Detail ''
         Write-ToolLog "=== $($step.Title) ==="
         try {
+            if ($step.Id -ne 'mysql' -and $completed.Contains('mysql')) { Initialize-InstallDatabase }
             & $step.Run
             $Sync.Steps[$step.Id] = 'done'
             if (-not $completed.Contains($step.Id)) { $completed.Add($step.Id) }

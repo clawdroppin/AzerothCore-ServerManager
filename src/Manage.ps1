@@ -3,6 +3,9 @@
 # Requires Common.ps1.
 
 $RegistryFile = Join-Path $env:LOCALAPPDATA 'AzerothCoreCreationTool\servers.json'
+# Database port sharing (swap databases on one port, identity check) - same code the server folders use.
+. (Join-Path (Split-Path -Parent $PSScriptRoot) 'payload\tools\DbSlot.ps1')
+$script:DbVerified = @{}
 $GamePorts = @{ Auth = 3724; World = 8085 }
 
 # ================================================================== server registry
@@ -226,6 +229,7 @@ function Start-ServerDatabase([string]$Root) {
     $svc = Get-Service $s.MySqlService -ErrorAction SilentlyContinue
     if (-not $svc) { throw "The database service '$($s.MySqlService)' is missing." }
     if ($svc.Status -eq 'Running') { return }
+    Enter-DatabaseSlot $Root $s      # shared port: stop the other server's database first (never while it runs)
     Start-Service $s.MySqlService
     for ($i = 0; $i -lt 60 -and -not (Test-PortListening ([int]$s.DbPort)); $i++) { Start-Sleep -Milliseconds 500 }
     # Remember that the app (not the game server) started it, so it can be stopped again when the app closes.
@@ -385,7 +389,7 @@ function Get-ServerSettings([string]$Root) {
         SoapPort = 7878; CharDbWorkers = 2; MapThreads = 4; AhBotGuids = ''; BotsAutoBattlegrounds = $true
         BotsStartAtLevel1 = $true; PublicAddress = ''; LocalAddress = ''; BackupKeep = 10
         MySqlStopWithServer = $false; DataDir = ''; InstallMode = 'build'; ClientDataVersion = ''
-        ConfOverrides = [pscustomobject]@{}; Events = @(); UpdatePinned = $false; BackupCopyDir = ''
+        ConfOverrides = [pscustomobject]@{}; Events = @(); UpdatePinned = $false; BackupCopyDir = ''; DbPortMode = 'own'
         Notify = [pscustomobject]@{ OnStartStop = $true; OnCrash = $true; OnLogin = $true; OnUpdate = $true }
     }
     foreach ($k in $defaults.Keys) { if ($null -eq $s.$k) { $s | Add-Member -NotePropertyName $k -NotePropertyValue $defaults[$k] -Force } }
@@ -542,7 +546,11 @@ function Invoke-ServerSql {
     $ErrorActionPreference = 'Continue'
     $s = Get-ServerSettings $Root
     # A server whose database stops with it may have MySQL off: start it on demand (the app stops it again on exit).
-    if (-not $NoAutoStart -and -not (Test-PortListening ([int]$s.DbPort))) { Start-ServerDatabase $Root }
+    if (-not $NoAutoStart) {
+        $svc = Get-Service $s.MySqlService -ErrorAction SilentlyContinue
+        if (($svc -and $svc.Status -ne 'Running') -or (-not $svc -and -not (Test-PortListening ([int]$s.DbPort)))) { Start-ServerDatabase $Root }
+    }
+    Assert-ServerDatabase $Root $s
     $mysql = Join-Path $s.MySqlDir 'bin\mysql.exe'
     $out = $Sql | & $mysql '-uacore' '-pacore' '--host=127.0.0.1' "--port=$($s.DbPort)" '-N' '-B' $Database 2>&1
     if ($LASTEXITCODE -ne 0) {
@@ -551,6 +559,34 @@ function Invoke-ServerSql {
     $rows = @($out | ForEach-Object { "$_" } | Where-Object { $_ -notmatch 'Using a password' })
     if ($Raw) { return $rows }
     $rows
+}
+
+function Assert-ServerDatabase([string]$Root, $s) {
+    # Never talk to another server's database (possible when servers share a database port).
+    # Checked once per database process, so it costs nothing on repeated queries.
+    $c = Get-NetTCPConnection -LocalPort ([int]$s.DbPort) -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $c -or $script:DbVerified[$Root] -eq $c.OwningProcess) { return }
+    if (-not (Test-DatabaseIdentity $Root $s)) {
+        throw "The database on port $($s.DbPort) belongs to another server, so nothing was read or changed. Start this server (it swaps its own database in), or run Check & repair."
+    }
+    $script:DbVerified[$Root] = $c.OwningProcess
+}
+
+function Get-SharedDbPort {
+    <# The database port shared by every server that uses "shared port" mode (remembered in the preferences).
+       Skips ports owned by servers with their own port and ports used by other programs. #>
+    $p = Get-AppPrefs
+    if ($p.SharedDbPort) { return [int]$p.SharedDbPort }
+    $own = @(foreach ($r in Get-ServerRegistry) { try { $x = Get-ServerSettings $r.RootDir; if ($x.DbPortMode -ne 'shared') { [int]$x.DbPort } } catch {} })
+    $port = 3307
+    foreach ($c in 3307..3399) {
+        if ($own -contains $c) { continue }
+        $holder = Get-DbPortService $c
+        if (-not $holder -or "$($holder.Name)" -like 'AzerothCoreMySQL*') { $port = $c; break }
+    }
+    $p | Add-Member -NotePropertyName SharedDbPort -NotePropertyValue $port -Force
+    Save-AppPrefs $p
+    $port
 }
 
 function ConvertFrom-SqlRows([string[]]$Rows, [string[]]$Columns) {
@@ -760,6 +796,7 @@ function New-ServerBackup([string]$Root, [string]$Label = 'manual', [switch]$Inc
     $args2 = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $Root 'tools\Backup-Server.ps1'), '-Label', $Label)
     if ($IncludeWorld) { $args2 += '-IncludeWorld' }
     $out = & powershell @args2 2>&1 | ForEach-Object { "$_" }
+    if ($LASTEXITCODE -eq 2) { throw "Backup not possible right now. $(($out | Where-Object { $_ -like 'Backup skipped:*' }) -replace '^Backup skipped:\s*', '')" }
     if ($LASTEXITCODE -ne 0) { throw "Backup failed: $($out -join ' ')" }
     $line = $out | Where-Object { $_ -like 'Backup created:*' } | Select-Object -Last 1
     ($line -replace '^Backup created:\s*', '').Trim()
