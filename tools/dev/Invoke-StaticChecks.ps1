@@ -90,6 +90,21 @@ foreach ($f in $scripts) {
     }
 }
 
+Write-Host '7. $script: inside closures' -ForegroundColor Cyan
+# A .GetNewClosure() block runs in its own module: $script:X there is NOT the app's variable (it is $null).
+# Use Get-AppVar / Set-AppVar (src\App.ps1) inside closures instead.
+foreach ($f in $scripts) {
+    $ast = $asts[$f.FullName]
+    $cls = @($ast.FindAll({ param($n) $n -is [Management.Automation.Language.InvokeMemberExpressionAst] -and $n.Member.Value -eq 'GetNewClosure' }, $true) | ForEach-Object Expression)
+    $seen = @{}
+    foreach ($c in $cls) {
+        foreach ($v in $c.FindAll({ param($n) $n -is [Management.Automation.Language.VariableExpressionAst] -and $n.VariablePath.IsScript }, $true)) {
+            $key = "$($v.Extent.StartLineNumber):$($v.Extent.Text)"
+            if (-not $seen[$key]) { $seen[$key] = $true; Add-Problem "$($f.Name):$($v.Extent.StartLineNumber) $($v.Extent.Text) inside a closure (use Get-AppVar/Set-AppVar)" }
+        }
+    }
+}
+
 if ($problems.Count) { Write-Host "`n$($problems.Count) problem(s)." -ForegroundColor Red; exit 1 }
 Write-Host "`nAll static checks passed ($($scripts.Count) scripts)." -ForegroundColor Green
 exit 0

@@ -400,7 +400,7 @@ function Show-PresetsWindow {
             $ap = New-Object Windows.Controls.Button; $ap.Content = 'Apply...'; $ap.Style = $App.Resources['Primary']; $ap.Tag = $p
             $ap.Add_Click({
                 $p = $this.Tag
-                $s = Get-ServerSettings $script:Root
+                $s = Get-ServerSettings (Get-AppVar Root)
                 $changes = Get-PresetChanges $p $s
                 if (-not (Confirm-Action "Apply '$($p.name)' to '$($s.RealmName)'?`n`n  • $($changes -join "`n  • ")`n`nTip: 'Save my current setup as a preset' first if you want to be able to come back to how it is now." 'Apply preset')) { return }
                 try { $s = Invoke-ApplyPreset $p $s; Save-ServerOptions $s; Show-Toast "'$($p.name)' applied. It takes effect at the next server start." 6; $x.Window.Close() }
@@ -431,10 +431,10 @@ function Show-PresetsWindow {
     $x.Fill = $fill   # the cards' own buttons refill the window through this
     & $fill
     $x.BtnSaveMine.Add_Click({
-        $name = Read-Input 'Name for this preset:' 'Save preset' "$($script:Settings.RealmName) style"
+        $name = Read-Input 'Name for this preset:' 'Save preset' "$((Get-AppVar Settings).RealmName) style"
         if (-not $name.Trim()) { return }
         $tag = Read-Input 'Short description (optional):' 'Save preset' 'My own setup'
-        $s = Get-ServerSettings $script:Root
+        $s = Get-ServerSettings (Get-AppVar Root)
         $ov = [ordered]@{}; foreach ($f in $s.ConfOverrides.PSObject.Properties) { $ov[$f.Name] = $f.Value }
         $p = [ordered]@{
             icon = '★'; name = $name.Trim(); tagline = $tag; clearOverrides = $true

@@ -5,6 +5,19 @@ versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-09
+### Fixed
+- **Presets → Apply crashed the app** (every preset). The button handler read the selected server through a
+  variable that a closure cannot see, got an empty path, and the unhandled error closed the app.
+- The same mistake silently broke a few other spots: the bot level chart refresh, the Performance page refresh,
+  refreshing the Updates page after an update or recompile, the "pinned" note on the Updates page, and
+  "Free up space" on the server card.
+
+### Added
+- Safety net: an unexpected error in a button handler now shows a message and is logged to
+  `%LOCALAPPDATA%\AzerothCoreCreationTool\app-errors.log` instead of closing the app.
+- Static check 7 in `tools\dev\Invoke-StaticChecks.ps1` catches `$script:` variables used inside closures.
+
 ## [1.0.1] - 2026-10-09
 ### Added
 - **Database port choice** when creating a server: a *shared port* (recommended; every server uses the same database

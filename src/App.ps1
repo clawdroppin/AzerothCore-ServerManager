@@ -32,6 +32,18 @@ $LastFile = Join-Path $env:LOCALAPPDATA 'AzerothCoreCreationTool\last-install.js
 # ================================================================== window
 if (-not [Windows.Application]::Current) { $null = New-Object Windows.Application }
 $App = [Windows.Application]::Current
+# Safety net: an unexpected error in a button handler shows a message (and is logged) instead of closing the app.
+$App.Add_DispatcherUnhandledException({
+    param($sender, $e)
+    $e.Handled = $true
+    $ex = $e.Exception; while ($ex.InnerException) { $ex = $ex.InnerException }
+    try {
+        $log = Join-Path $env:LOCALAPPDATA 'AzerothCoreCreationTool\app-errors.log'
+        New-Item -ItemType Directory -Force (Split-Path $log) | Out-Null
+        Add-Content $log ("{0}  {1}`r`n{2}`r`n" -f (Get-Date -Format 's'), $ex.Message, $e.Exception.ToString())
+    } catch {}
+    [Windows.MessageBox]::Show("Something went wrong, but the app keeps running:`n`n$($ex.Message)`n`nIf it keeps happening, please report it (Help & about > Project page) and attach:`n$env:LOCALAPPDATA\AzerothCoreCreationTool\app-errors.log", 'AzerothCore Control Center', 'OK', 'Warning') | Out-Null
+})
 $App.ShutdownMode = 'OnExplicitShutdown'
 $themeXml = [IO.File]::ReadAllText((Join-Path $ToolDir 'ui\Theme.xaml'))
 $App.Resources = [Windows.Markup.XamlReader]::Parse($themeXml)
@@ -44,6 +56,11 @@ $ui = @{}
 foreach ($m in [regex]::Matches($appXml, 'x:Name="([^"]+)"')) { $ui[$m.Groups[1].Value] = $Window.FindName($m.Groups[1].Value) }
 
 function Get-Brush([string]$key) { $App.Resources[$key] }
+
+# Closures made with .GetNewClosure() (button handlers, -OnDone callbacks) run in their own little module, where
+# $script:Name does NOT reach the app's variables. Inside closures use these instead (functions keep the app's scope).
+function Get-AppVar([string]$Name) { Get-Variable -Name $Name -Scope Script -ValueOnly -ErrorAction SilentlyContinue }
+function Set-AppVar([string]$Name, $Value) { Set-Variable -Name $Name -Value $Value -Scope Script }
 
 function Show-Toast([string]$text, [int]$seconds = 4) {
     $ui.ToastText.Text = $text
@@ -403,7 +420,7 @@ function Update-Dashboard([switch]$Full) {
         [pscustomobject]@{ Status = $st; Health = $(if ($h) { @(Get-ServerHealth $r $st) } else { $null }) }
     } -Arguments @($root, $withHealth) -OnDone {
         param($res, $err)
-        if ($err -or $script:Root -ne $root) { return }
+        if ($err -or (Get-AppVar Root) -ne $root) { return }
         $r = $res | Select-Object -Last 1
         Show-Status $r.Status
         if ($r.Health) { Show-Health $r.Health }
@@ -1333,7 +1350,7 @@ function Invoke-UpdateCheck {
         $ui.UpdGrid.ItemsSource = $rows
         $n = ($rows | Measure-Object NewCommits -Sum).Sum
         $comp = @($rows | Where-Object HasChanges).Count
-        $ui.UpdSummary.Text = if ($script:Settings.UpdatePinned) { 'This server is pinned to its current version (see Automatic updates below).' }
+        $ui.UpdSummary.Text = if ((Get-AppVar Settings).UpdatePinned) { 'This server is pinned to its current version (see Automatic updates below).' }
                               elseif ($n -gt 0) { "$n new change(s) in $comp component(s). Untick anything you don't want, then click 'Update selected'." }
                               else { '✔ Everything is up to date.' }
         Set-UpdateBadge $root ($n -gt 0)
@@ -1362,13 +1379,13 @@ function Start-SafeUpdate([string[]]$Components) {
         Invoke-SafeUpdate -Root $r -ToolDirectory $tool -Components $comp -WarnMinutes $w
     } -Arguments @($root, $ToolDir, $Components, $warn) -OnDone {
         param($res, $err)
-        $script:UpdCheckedFor = $null
-        if ($err) { if ($script:CurrentPage -eq 'Updates') { Enter-Updates }; return }
+        Set-AppVar UpdCheckedFor $null
+        if ($err) { if ((Get-AppVar CurrentPage) -eq 'Updates') { Enter-Updates }; return }
         $r = $res | Select-Object -Last 1
         if ($r.Ok) { Show-Toast "✔ $($r.Message)" 8; Show-Message "$($r.Message)`n`nThe new version is running fine. A safety copy of the previous version is kept on the Updates page - once you've played and everything is good, you can delete it there." 'Update finished' }
         elseif ($r.RolledBack) { Show-Message "The update did not work: $($r.Message)`n`nEverything was put back exactly as it was before (programs, settings and characters). Nothing is lost. The full log is in:`n$($r.Log)" 'Update rolled back' 'Warning' }
         elseif ($r.Message -eq 'COMPILE_FAILED') { Resolve-UpdateCompileFailure $Components @($r.Failing) $r.Log }
-        if ($script:CurrentPage -eq 'Updates') { Enter-Updates }
+        if ((Get-AppVar CurrentPage) -eq 'Updates') { Enter-Updates }
     }.GetNewClosure() | Out-Null
 }
 
@@ -1388,7 +1405,7 @@ function Start-Recompile([switch]$Clean) {
         Invoke-SafeUpdate -Root $r -ToolDirectory $tool -Rebuild -Clean:$cl -WarnMinutes $w
     } -Arguments @($root, $ToolDir, $warn, [bool]$Clean) -OnDone {
         param($res, $err)
-        if ($err) { if ($script:CurrentPage -eq 'Updates') { Enter-Updates }; return }
+        if ($err) { if ((Get-AppVar CurrentPage) -eq 'Updates') { Enter-Updates }; return }
         $r = $res | Select-Object -Last 1
         if ($r.Ok) { Show-Toast "✔ $($r.Message)" 8 }
         elseif ($r.RolledBack) { Show-Message "The recompiled server did not work: $($r.Message)`n`nEverything was put back as it was before. Nothing is lost. Log:`n$($r.Log)" 'Recompile rolled back' 'Warning' }
@@ -1397,7 +1414,7 @@ function Start-Recompile([switch]$Clean) {
             Show-Message ("The server does not compile$(if ($parts) { " - the problem is in: $($parts -join ', ')" }).`n`nNothing was changed; your server runs exactly as before.`n`n" +
                 "Try 'Check & repair' on the Dashboard, a clean recompile, or switch the named module off under Modules.`n`nLog: $($r.Log)") 'Recompile failed' 'Warning'
         }
-        if ($script:CurrentPage -eq 'Updates') { Enter-Updates }
+        if ((Get-AppVar CurrentPage) -eq 'Updates') { Enter-Updates }
     }.GetNewClosure() | Out-Null
 }
 
@@ -1539,7 +1556,7 @@ function Enter-Performance {
     $root = $script:Root
     Start-BgTask -Tag 'perf' -Script { param($r) $snap = Get-PerformanceSnapshot $r; [pscustomobject]@{ Snap = $snap; Advice = Get-BotAdvice $snap } } -Arguments @($root) -OnDone {
         param($res, $err)
-        if ($err -or $script:Root -ne $root -or $script:CurrentPage -ne 'Performance') { return }
+        if ($err -or (Get-AppVar Root) -ne $root -or (Get-AppVar CurrentPage) -ne 'Performance') { return }
         $p = ($res | Select-Object -Last 1); $s = $p.Snap; $a = $p.Advice
         $ui.PerfCpu.Text = "$($s.CpuPct)%"; $ui.PerfCpuHint.Text = "$($s.Cores) threads"
         $used = [math]::Round($s.RamTotalGB - $s.RamFreeGB, 1)
@@ -1562,7 +1579,7 @@ function Enter-Performance {
         $lines += "Suggested for this PC right now: about $($a.Suggest) bots (you have $($s.Bots) set)."
         if ($a.Suggest -lt $s.Bots) { $lines += 'Fewer bots would make the world smoother and leave more memory for the game and other programs.' }
         $ui.PerfAdvice.Text = $lines -join "`n"
-        $script:PerfSuggest = $a.Suggest
+        Set-AppVar PerfSuggest $a.Suggest
         $ui.BtnPerfApply.Visibility = if ([math]::Abs($a.Suggest - $s.Bots) -ge 100) { 'Visible' } else { 'Collapsed' }
         $ui.BtnPerfApply.Content = "Use $($a.Suggest) bots (applies at the next start)"
     }.GetNewClosure() | Out-Null
@@ -1726,7 +1743,7 @@ function Start-ServerSmart([string]$Root) {
             if ($err) { return }
             Start-GameServer $Root
             Show-Toast 'Switched servers - the new one is starting.' 5
-            if ($script:CurrentPage -eq 'Servers') { Enter-Servers }
+            if ((Get-AppVar CurrentPage) -eq 'Servers') { Enter-Servers }
         }.GetNewClosure() | Out-Null
         return
     }
@@ -1877,7 +1894,7 @@ function Invoke-ServerCardAction([string]$action, [string]$Root) {
         'slim' {
             if (-not (Confirm-Action "Delete the compile leftovers of '$($s.RealmName)' (about 5 GB)?`n`nThe server keeps working. The next update will recompile everything (30-60 min instead of a few minutes).")) { return }
             Start-BgTask -Overlay 'Freeing up space...' -Script { param($r) Remove-BuildLeftovers $r } -Arguments @($Root) -OnDone {
-                param($a, $b) if (-not $b) { $script:SizeCache.Remove($Root); Show-Toast 'Space freed.'; Enter-Servers }
+                param($a, $b) if (-not $b) { (Get-AppVar SizeCache).Remove($Root); Show-Toast 'Space freed.'; Enter-Servers }
             }.GetNewClosure() | Out-Null
         }
         'dup' {
