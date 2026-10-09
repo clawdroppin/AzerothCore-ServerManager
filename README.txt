@@ -85,7 +85,7 @@ Export & move       Pack the server into one file:
                       - "Move this server": runs on the other PC without compiling (minutes)
                       - "Characters and settings only": small; the other PC builds it fresh
 Updates             Safe updates (see below), changelog per component, safety copies with
-                    "go back", automatic updates, pinning, and modules (11 optional community
+                    "go back", automatic updates, pinning, and modules (12 optional community
                     modules such as AutoBalance, Transmog, Solo dungeon finder, Individual
                     Progression). Module changes use the same safe pipeline.
                     "Recompile" builds the programs again from the current version (no

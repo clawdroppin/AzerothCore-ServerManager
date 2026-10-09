@@ -615,7 +615,14 @@ function Invoke-Install {
     $pkgDir = Join-Path $Root '.creationtool\package'
     if (Test-Path $pkgDir) { Remove-Item $pkgDir -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item (Join-Path $Root '.creationtool\package.source') -Force -ErrorAction SilentlyContinue
-    if (Get-Command Register-Server -ErrorAction SilentlyContinue) { Register-Server $Root $S.RealmName }
+    if (Get-Command Register-Server -ErrorAction SilentlyContinue) {
+        # Add it to the app's server list and make sure it really landed there.
+        try {
+            Register-Server $Root $S.RealmName
+            if (Get-ServerRegistry | Where-Object { $_.RootDir.TrimEnd('\') -eq $Root.TrimEnd('\') }) { Write-ToolLog "Added '$($S.RealmName)' to the app's server list." 'OK' }
+            else { Write-ToolLog "Could not add the server to the app's server list - use My servers > Add existing folder." 'WARN' }
+        } catch { Write-ToolLog "Could not add the server to the app's server list ($($_.Exception.Message)) - use My servers > Add existing folder." 'WARN' }
+    }
     $Sync.Current = 'Finished'
     Write-ToolLog $(if ($StepIds) { '=== Done ===' } else { '=== Your server is ready! ===' }) 'OK'
 }

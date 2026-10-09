@@ -198,7 +198,23 @@ $ui.BtnBusyCancel.Add_Click({
 $script:Root = $null
 $script:Settings = $null
 
+function Repair-ServerListFromLastInstall {
+    # Self-heal: a finished install that is missing from the server list (seen once in the wild) is added back.
+    try {
+        if (-not (Test-Path $LastFile)) { return }
+        $last = Get-Content $LastFile -Raw | ConvertFrom-Json
+        $root = "$($last.RootDir)".TrimEnd('\')
+        if (-not $root -or -not (Test-ServerRoot $root)) { return }
+        $state = Join-Path $root '.creationtool\state.json'
+        if (-not (Test-Path $state) -or @((Get-Content $state -Raw | ConvertFrom-Json).Completed) -notcontains 'client') { return }
+        if (Get-ServerRegistry | Where-Object { $_.RootDir.TrimEnd('\') -eq $root }) { return }
+        if (Test-Path (Join-Path $root '.creationtool\removed-from-list')) { return }   # the user removed it on purpose
+        Register-Server $root (Get-ServerSettings $root).RealmName
+    } catch {}
+}
+
 function Update-ServerList([string]$select) {
+    Repair-ServerListFromLastInstall
     try { $list = @(Get-ServerRegistry | Where-Object { Test-ServerRoot $_.RootDir }) }
     catch { Show-Message "$($_.Exception.Message)`n`nAdd your servers again with My servers > Add existing folder (nothing inside them is lost)." 'Server list' 'Warning'; $list = @() }
     $ui.CmbServer.Items.Clear()
@@ -427,9 +443,11 @@ function Update-Dashboard([switch]$Full) {
     }.GetNewClosure() | Out-Null
     if ($Full) {
         $ui.ChkAutostart.IsChecked = Get-ServerAutostart $root
-        Start-BgTask -Tag 'levels' -Script { param($r) Get-BotLevelDistribution $r } -Arguments @($root) -OnDone {
-            param($res, $err) if (-not $err) { Show-LevelChart $res } else { Show-LevelChart @() }
-        } | Out-Null
+        Start-BgTask -Tag "levels:$root" -Script { param($r) Get-BotLevelDistribution $r } -Arguments @($root) -OnDone {
+            param($res, $err)
+            if ((Get-AppVar Root) -ne $root) { return }   # another server was selected meanwhile
+            if (-not $err) { Show-LevelChart $res } else { Show-LevelChart @() }
+        }.GetNewClosure() | Out-Null
     }
 }
 
@@ -522,11 +540,12 @@ $ui.TxtCmd.Add_KeyDown({
 function Update-Accounts {
     if (-not $script:Root) { return }
     $root = $script:Root
-    Start-BgTask -Tag 'accounts' -Script { param($r) @(Get-GameAccounts $r) } -Arguments @($root) -OnDone {
+    Start-BgTask -Tag "accounts:$root" -Script { param($r) @(Get-GameAccounts $r) } -Arguments @($root) -OnDone {
         param($res, $err)
+        if ((Get-AppVar Root) -ne $root) { return }   # another server was selected meanwhile
         if ($err) { Show-Toast "Could not load accounts: $($err.Message)" 6; return }
         $ui.AccGrid.ItemsSource = @($res)
-    } | Out-Null
+    }.GetNewClosure() | Out-Null
 }
 $ui.BtnAccRefresh.Add_Click({ Update-Accounts })
 $ui.BtnAccCreate.Add_Click({
@@ -571,12 +590,17 @@ function Update-Characters {
     $kind = @('Players', 'Bots', 'All')[$ui.CharKind.SelectedIndex]
     $online = [bool]$ui.CharOnline.IsChecked
     $root = $script:Root
-    Start-BgTask -Tag 'chars' -Script { param($r, $k, $o) @(Get-ServerCharacters -Root $r -Kind $k -OnlineOnly:$o) } -Arguments @($root, $kind, $online) -OnDone {
+    # One job per selection (switching Players/Bots while a list loads must not drop the new request),
+    # and results that no longer match what is selected are ignored.
+    $want = "$root|$kind|$online"
+    Start-BgTask -Tag "chars:$want" -Script { param($r, $k, $o) @(Get-ServerCharacters -Root $r -Kind $k -OnlineOnly:$o) } -Arguments @($root, $kind, $online) -OnDone {
         param($res, $err)
+        $now = "$(Get-AppVar Root)|$(@('Players', 'Bots', 'All')[$ui.CharKind.SelectedIndex])|$([bool]$ui.CharOnline.IsChecked)"
+        if ($now -ne $want) { return }
         if ($err) { Show-Toast "Could not load characters: $($err.Message)" 6; return }
         $ui.CharGrid.ItemsSource = @($res)
         $ui.CharCount.Text = "$(@($res).Count) characters shown (max 500)."
-    } | Out-Null
+    }.GetNewClosure() | Out-Null
 }
 $ui.BtnCharRefresh.Add_Click({ Update-Characters })
 $ui.CharKind.Add_SelectionChanged({ if ($script:CurrentPage -eq 'Characters') { Update-Characters } })
@@ -656,11 +680,12 @@ function Enter-Friends {
     $ui.ChkNotifyCrash.IsChecked = $n.OnCrash -ne $false; $ui.ChkNotifyUpdate.IsChecked = $n.OnUpdate -ne $false
     $ui.NetInfo.Text = 'Detecting your network...'
     $root = $script:Root
-    Start-BgTask -Tag 'net' -Script { param($r) [pscustomobject]@{ Net = Get-NetworkInfo; Realm = Get-RealmAddress $r; Profile = "$(Get-NetworkProfileName)" } } -Arguments @($root) -OnDone {
+    Start-BgTask -Tag "net:$root" -Script { param($r) [pscustomobject]@{ Net = Get-NetworkInfo; Realm = Get-RealmAddress $r; Profile = "$(Get-NetworkProfileName)" } } -Arguments @($root) -OnDone {
         param($res, $err)
+        if ((Get-AppVar Root) -ne $root) { return }   # another server was selected meanwhile
         if ($err) { $ui.NetInfo.Text = "Could not detect the network: $($err.Message)"; return }
         $r = $res | Select-Object -Last 1
-        $script:Net = $r.Net
+        Set-AppVar Net $r.Net
         $n = $r.Net
         $ui.NetInfo.Text = (@(
             "This PC on your home network:  $(if ($n.LanIp) { $n.LanIp } else { 'not found' })",
@@ -674,7 +699,7 @@ function Enter-Friends {
         elseif ($n.VpnIp -and $a -eq $n.VpnIp) { $ui.RbNetVpn.IsChecked = $true }
         elseif ($n.PublicIp -and $a -eq $n.PublicIp) { $ui.RbNetInternet.IsChecked = $true }
         else { $ui.RbNetLan.IsChecked = $true }
-    } | Out-Null
+    }.GetNewClosure() | Out-Null
 }
 $ui.BtnNetRefresh.Add_Click({ Enter-Friends })
 
@@ -1011,6 +1036,9 @@ function Enter-Settings {
 function Save-SettingsPage([switch]$Restart) {
     try { $s = Read-SettingsForm $script:SettingsFields ($script:Settings | ConvertTo-Json -Depth 6 | ConvertFrom-Json) }
     catch { Show-Message $_.Exception.Message 'Please check the settings' 'Warning'; return }
+    # A World settings change must not be cancelled by an older override of the same option (e.g. Extra settings).
+    $dropped = @(Remove-ShadowingOverrides $script:Settings $s)
+    if ($dropped.Count) { Show-Toast "Your World settings now apply - replaced $($dropped.Count) older extra/advanced option(s): $($dropped -join ', ')" 10 }
     try {
         Save-ServerSettings $script:Root $s
         Invoke-ApplyServerConfig $script:Root | Out-Null
@@ -1336,8 +1364,9 @@ function Invoke-UpdateCheck {
     $root = $script:Root
     $ui.UpdGrid.ItemsSource = $null; $ui.UpdChanges.Text = ''
     $ui.UpdSummary.Text = 'Checking for updates...'
-    Start-BgTask -Tag 'updcheck' -Script { param($r) @(Get-UpdateStatus $r) } -Arguments @($root) -OnDone {
+    Start-BgTask -Tag "updcheck:$root" -Script { param($r) @(Get-UpdateStatus $r) } -Arguments @($root) -OnDone {
         param($res, $err)
+        if ((Get-AppVar Root) -ne $root) { return }   # another server was selected meanwhile
         if ($err) { $ui.UpdSummary.Text = "Could not check: $($err.Message)"; return }
         $rows = foreach ($x in @($res | Where-Object { $_.Name })) {
             $u = [UpdRow]::new()
@@ -1587,7 +1616,9 @@ function Enter-Performance {
 $ui.BtnPerfApply.Add_Click({
     if (-not $script:PerfSuggest) { return }
     if (-not (Confirm-Action "Set the number of bots to $($script:PerfSuggest)? It takes effect the next time the server starts.")) { return }
+    $before = $script:Settings | ConvertTo-Json -Depth 8 | ConvertFrom-Json
     $script:Settings.Bots = [int]$script:PerfSuggest
+    [void](Remove-ShadowingOverrides $before $script:Settings)   # an older bot-count override must not win
     try { Save-ServerSettings $script:Root $script:Settings; Invoke-ApplyServerConfig $script:Root | Out-Null; Show-Toast "Bots set to $($script:PerfSuggest)." } catch { Show-Toast $_.Exception.Message 6 }
 })
 

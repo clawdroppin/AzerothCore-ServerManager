@@ -328,6 +328,7 @@ function Get-PresetChanges($p, $s) {
 }
 
 function Invoke-ApplyPreset($p, $s) {
+    $before = $s | ConvertTo-Json -Depth 8 | ConvertFrom-Json
     if ($p.settings.Rates) { foreach ($r in $p.settings.Rates.PSObject.Properties) { $s.Rates.($r.Name) = [double]$r.Value } }
     if ($p.settings.botsFactor) { $s.Bots = [math]::Max(50, [int]([int]$s.Bots * [double]$p.settings.botsFactor)) }
     if ($null -ne $p.settings.Bots) { $s.Bots = [int]$p.settings.Bots }
@@ -343,6 +344,8 @@ function Invoke-ApplyPreset($p, $s) {
         }
     }
     Set-ConfOverrideTable $s $table
+    # A preset that changes World settings fields (e.g. fewer bots) must not be cancelled by older overrides of those options.
+    [void](Remove-ShadowingOverrides $before $s)
     # Options that installed modules need are never removed by a preset.
     Update-ModuleConfigOverrides $s $V.modules
     $s
@@ -532,7 +535,8 @@ function Show-AllOptionsWindow {
         foreach ($o in Get-ConfOptions $f.Dist) {
             $r = [ConfRow]::new()
             $r.Key = $o.Key; $r.Default = $o.Default; $r.Description = $o.Description
-            if ($mine -and $mine.ContainsKey($o.Key)) { $r.Value = $mine[$o.Key]; $r.Source = 'you' }
+            $myKey = if ($mine) { @(@($o.Key) + @(Get-ConfKeyAliases $o.Key) | Where-Object { $mine.ContainsKey($_) }) | Select-Object -First 1 } else { $null }
+            if ($myKey) { $r.Value = $mine[$myKey]; $r.Source = 'you' }
             elseif ($conf.ContainsKey($o.Key)) { $r.Value = $conf[$o.Key]; $r.Source = if ($conf[$o.Key].Trim('"') -ne $o.Default.Trim('"')) { 'app' } else { '' } }
             else { $r.Value = $o.Default; $r.Source = '' }
             $r.Original = $r.Value

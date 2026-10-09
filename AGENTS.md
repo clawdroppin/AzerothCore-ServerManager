@@ -234,10 +234,19 @@ WoW server is running, since they share ports 3724 / 8085 / 7878.
 | Setting `Owner` on a dialog fails when the main window isn't shown (self-test). | `New-ThemedWindow` sets the owner only if `$Window.IsVisible`. |
 | Multi-line `.Replace()` on files fails silently on CRLF/LF mismatch. | Normalize line endings and assert the match count when patching. |
 | Several app-made databases on one port | Always go through `Enter-DatabaseSlot` before starting a database service, and verify with `Test-DatabaseIdentity` / `Assert-ServerDatabase` before reading or writing. |
+| A background list load tagged with a fixed `-Tag` drops the next request while it runs, and its `-OnDone` can paint results for a server/selection the user already left. | Tag per selection (`"accounts:$root"`), make `-OnDone` a closure, and return early when `(Get-AppVar Root) -ne $root`. |
 | A shared settings file read by several processes can be caught mid-write and come back empty. | `servers.json` is written atomically (`.tmp` → `File.Replace` with `.bak`), and reads retry and fall back to `.bak`. Never treat an unreadable file as "empty list". |
 | Servers launched from a tool shell die with that shell (job object). | `Start-GameServer` launches through `explorer.exe START_SERVER.bat`, so the server is independent of the app. |
 
 ## 7. AzerothCore / server pitfalls
+
+- **Modules rename their options.** Playerbots renamed all 888 options from `AiPlayerbot.X` to `Playerbots.X` (2026)
+  and reads only its own spelling, so writing the old name silently does nothing. `apply-config` resolves every key
+  against the `.conf.dist` (`Get-ConfKeyAliases`, same list in `Manage.ps1`), and `Read-ConfValues`/`Get-ConfValue`
+  answer to both spellings. Unknown keys are listed in `tools\config-unknown.txt` and shown by Check & repair.
+  Keep writing the old `AiPlayerbot.` names in code/JSON; the resolver maps them.
+- World settings fields own certain options (`$WorldSettingOptions` in `Manage.ps1`). Anything that changes those
+  fields must call `Remove-ShadowingOverrides $before $after`, or an older override silently wins.
 
 - **pdump** (`pdump write/load`) only accepts a plain file name relative to `server\` (absolute paths fail
   silently), and says "success" *before* the asynchronous DB write. Verify with SQL (`Copy-CharacterToServer`).

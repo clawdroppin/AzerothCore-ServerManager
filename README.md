@@ -41,7 +41,7 @@ run dungeons and fight in battlegrounds alongside you. You don't need any progra
 | 🛠️ **Check & repair** | Around 30 checks that find the usual ways a server breaks: a moved folder, missing files, a database that won't start, a broken admin login, stale scheduled tasks, busy ports and more. It repairs them after you confirm. Recompile and clean recompile are one click each. |
 | 👥 **Play with friends** | Same house, a free VPN (Tailscale), or port forwarding. It sets up the firewall rules and gives you a "join kit" to send your friends. Optional **Discord notifications** cover online/offline, logins, crashes and updates. |
 | 💾 **Backups & moving** | Daily backups, save points you can roll back to, an extra copy on another drive or cloud folder, and **export the whole server to one file** to move it to a laptop with no compiling needed. |
-| 🧩 **Modules on a switch** | Auction House Bot, Dungeon Clear, AI Chatter, Dungeon Master, account-wide mounts, plus 11 community modules (AutoBalance, Transmog, Solo dungeon finder, Individual Progression...). Each one is added or removed through the same safe pipeline. |
+| 🧩 **Modules on a switch** | Auction House Bot, Dungeon Clear, AI Chatter, Dungeon Master, account-wide mounts, plus 12 community modules (AutoBalance, Transmog, Solo dungeon finder, Individual Progression, PTR character templates...). Each one is added or removed through the same safe pipeline. |
 | 🖥️ **Several servers** | Each server lives in its own folder with its own database. One runs at a time, and idle servers use no memory. By default all servers **share one database port** and starting a server swaps its database in automatically (every connection is checked to reach the right server's data). Duplicate a server, copy characters between servers, and run timed events like double-XP weekends. |
 
 ---
@@ -168,6 +168,7 @@ HeidiSQL and Tailscale are optional.
 | [Boss Kill Announcements](https://github.com/azerothcore/mod-boss-announcer) | Server-wide boss kill messages |
 | [Skip the Death Knight Intro](https://github.com/azerothcore/mod-skip-dk-starting-area) | Skip the DK starting area (WotLK) |
 | [Individual Progression](https://github.com/ZhengPeiRu21/mod-individual-progression) | Vanilla → TBC → WotLK progression per player |
+| [PTR Character Templates](https://github.com/azerothcore/mod-ptr-template) | Blizzard's test-realm premades: `.template apply` makes a ready level 80/70 character (gear, spells, skills, flights) |
 </details>
 
 <details>

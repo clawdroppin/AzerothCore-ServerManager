@@ -44,12 +44,15 @@ function Save-ServerRegistry($list) {
 }
 
 function Register-Server([string]$Root, [string]$Name) {
+    Remove-Item (Join-Path $Root '.creationtool\removed-from-list') -Force -ErrorAction SilentlyContinue
     $list = @(Get-ServerRegistry | Where-Object { $_.RootDir -ne $Root })
     $list += [pscustomobject]@{ Name = $Name; RootDir = $Root; Added = (Get-Date -Format 'yyyy-MM-dd') }
     Save-ServerRegistry $list
 }
 
 function Unregister-Server([string]$Root) {
+    # Marker so the startup self-heal does not add a server back that the user removed on purpose.
+    if (Test-Path (Join-Path $Root '.creationtool')) { Set-Content (Join-Path $Root '.creationtool\removed-from-list') (Get-Date -Format s) -ErrorAction SilentlyContinue }
     Save-ServerRegistry @(Get-ServerRegistry | Where-Object { $_.RootDir -ne $Root })
 }
 
@@ -282,10 +285,21 @@ function Remove-ServerInstall {
 
 # ================================================================== import a server not made by this tool
 
+function Get-ConfKeyAliases([string]$Key) {
+    # Playerbots renamed every option from "AiPlayerbot.X" to "Playerbots.X" (2026). Servers built before that use the
+    # old names, newer ones the new names. Same list as in payload\tools\apply-config.ps1.
+    if ($Key -match '^A[iI]Playerbot\.(.+)$') { return @("Playerbots.$($Matches[1])") }
+    if ($Key -match '^Playerbots\.(.+)$') { return @("AiPlayerbot.$($Matches[1])", "AIPlayerbot.$($Matches[1])") }
+    @()
+}
+
 function Get-ConfValue([string]$File, [string]$Key) {
     if (-not (Test-Path $File)) { return $null }
-    $line = Select-String $File -Pattern ('^\s*' + [regex]::Escape($Key) + '\s*=\s*(.*)$') | Select-Object -Last 1
-    if ($line) { $line.Matches[0].Groups[1].Value.Trim().Trim('"') } else { $null }
+    foreach ($k in @($Key) + @(Get-ConfKeyAliases $Key)) {
+        $line = Select-String $File -Pattern ('^\s*' + [regex]::Escape($k) + '\s*=\s*(.*)$') | Select-Object -Last 1
+        if ($line) { return $line.Matches[0].Groups[1].Value.Trim().Trim('"') }
+    }
+    $null
 }
 
 function Import-ExistingServer {
@@ -436,6 +450,8 @@ function Read-ConfValues([string]$Path) {
     foreach ($l in [IO.File]::ReadLines($Path)) {
         if ($l -match '^\s*([A-Za-z][\w.\-]*)\s*=\s*(.*?)\s*$' -and -not $kv.ContainsKey($Matches[1])) { $kv[$Matches[1]] = $Matches[2] }
     }
+    # Also answer to the other spelling of renamed options (old/new Playerbots names).
+    foreach ($k in @($kv.Keys)) { foreach ($a in Get-ConfKeyAliases $k) { if (-not $kv.ContainsKey($a)) { $kv[$a] = $kv[$k] } } }
     $kv
 }
 
@@ -464,6 +480,47 @@ function Get-ConfOptions([string]$Dist) {
         } elseif ($line -match '^\s*\[') { $pending.Clear() }
     }
     $out
+}
+
+# Options that World settings controls. When the user changes one of these fields there, any override of the same
+# option (Extra settings / All options / presets) is removed - otherwise the override would silently win.
+$WorldSettingOptions = @{
+    'Bots'                  = @{ 'modules/playerbots.conf' = @('AiPlayerbot.MinRandomBots', 'AiPlayerbot.MaxRandomBots', 'AiPlayerbot.Enabled', 'AiPlayerbot.RandomBotAccountCount') }
+    'BotsStartAtLevel1'     = @{ 'modules/playerbots.conf' = @('AiPlayerbot.DisableRandomLevels') }
+    'BotsAutoBattlegrounds' = @{ 'modules/playerbots.conf' = @('AiPlayerbot.RandomBotAutoJoinBG') }
+    'GameType'              = @{ 'worldserver.conf' = @('GameType') }
+    'Expansion'             = @{ 'worldserver.conf' = @('Expansion', 'MaxPlayerLevel'); 'modules/playerbots.conf' = @('AiPlayerbot.RandomBotMaxLevel', 'AiPlayerbot.RandomBotMaps') }
+    'MapThreads'            = @{ 'worldserver.conf' = @('MapUpdate.Threads') }
+    'Rates.XPKill'          = @{ 'worldserver.conf' = @('Rate.XP.Kill') }
+    'Rates.XPQuest'         = @{ 'worldserver.conf' = @('Rate.XP.Quest', 'Rate.XP.Quest.DF') }
+    'Rates.XPExplore'       = @{ 'worldserver.conf' = @('Rate.XP.Explore') }
+    'Rates.Money'           = @{ 'worldserver.conf' = @('Rate.Drop.Money') }
+    'Rates.Crafting'        = @{ 'worldserver.conf' = @('SkillGain.Crafting') }
+    'Rates.Gathering'       = @{ 'worldserver.conf' = @('SkillGain.Gathering') }
+    'Rates.Weapon'          = @{ 'worldserver.conf' = @('SkillGain.Weapon', 'SkillGain.Defense') }
+    'Rates.Reputation'      = @{ 'worldserver.conf' = @('Rate.Reputation.Gain', 'Rate.Reputation.LowLevel.Kill', 'Rate.Reputation.LowLevel.Quest') }
+    'Rates.Honor'           = @{ 'worldserver.conf' = @('Rate.Honor') }
+}
+
+function Remove-ShadowingOverrides($Old, $New) {
+    <# For every World settings field that changed between $Old and $New, removes overrides of the options it controls
+       (under both spellings). Returns the removed option names, so the user can be told. #>
+    $get = { param($o, $path) $v = $o; foreach ($p in $path -split '\.') { if ($null -eq $v) { break }; $v = $v.$p }; "$v" }
+    $table = Get-ConfOverrideTable $New
+    $removed = @()
+    foreach ($field in $WorldSettingOptions.Keys) {
+        if ((& $get $Old $field) -eq (& $get $New $field)) { continue }
+        foreach ($rel in $WorldSettingOptions[$field].Keys) {
+            if (-not $table[$rel]) { continue }
+            foreach ($k in $WorldSettingOptions[$field][$rel]) {
+                foreach ($name in @($k) + @(Get-ConfKeyAliases $k)) {
+                    foreach ($have in @($table[$rel].Keys)) { if ($have -eq $name) { $table[$rel].Remove($have); $removed += $have } }
+                }
+            }
+        }
+    }
+    if ($removed.Count) { Set-ConfOverrideTable $New $table }
+    $removed
 }
 
 function Get-ConfOverrideTable($Settings) {

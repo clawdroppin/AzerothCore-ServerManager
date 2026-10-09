@@ -5,6 +5,27 @@ versions follow [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-09
+### Added
+- Check & repair reports options a server version doesn't recognise (written by the config writer to
+  `tools\config-unknown.txt`), so a future rename by a module shows up instead of silently doing nothing.
+- **PTR Character Templates** module ([mod-ptr-template](https://github.com/azerothcore/mod-ptr-template)), optional
+  under Updates → Modules: Blizzard's public-test-realm premade characters. `.template list` and
+  `.template apply <number>` turn a character into a ready-to-play Wrath Classic level 80 (or 70) with gear, spells,
+  skills, flight paths and reputations. Level 60 Classic sets are included and can be enabled by an admin.
+
+### Fixed
+- **The number of bots (and every other bot option) had no effect on newly built servers.** Playerbots renamed all
+  its options from `AiPlayerbot.X` to `Playerbots.X`; the app wrote the old names, which the new version ignores.
+  The config writer now uses whichever names the server's Playerbots version has, so old and new servers both work.
+- Changing a value in World settings (or a preset / the Performance suggestion) now removes older Extra settings or
+  All options overrides of the same option, which would otherwise silently win.
+- Bot guild-chat chatter is now silenced with an option that exists in every Playerbots version (one was removed).
+- Switching servers (or Players/Bots) while a list was still loading could show the previous selection's results;
+  accounts, characters, network info, update check and the level chart now ignore stale results.
+- A finished install could end up missing from the app's server list. The installer now verifies the entry and logs
+  it, and the app re-adds a finished install that is missing at startup (unless you removed it on purpose).
+
 ## [1.0.2] - 2026-10-09
 ### Fixed
 - **Presets → Apply crashed the app** (every preset). The button handler read the selected server through a

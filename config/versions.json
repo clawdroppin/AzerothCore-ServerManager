@@ -148,6 +148,15 @@
           "DBC.EnforceItemAttributes": "0"
         }
       }
+    },
+    {
+      "name": "mod-ptr-template",
+      "repo": "https://github.com/azerothcore/mod-ptr-template.git",
+      "branch": "master",
+      "community": true,
+      "title": "PTR Character Templates",
+      "description": "Blizzard's test-realm premade characters: type .template list, then .template apply <number> to turn a character into a ready-to-play level 80 (or 70) with gear, spells, skills, flight paths and reputations.",
+      "note": "The level 70 and 80 templates need Game version Burning Crusade / Wrath. On a Vanilla server, an admin can switch on the level 60 Classic templates in game with .template enable <number>."
     }
   ],
   "prereqs": {

@@ -482,6 +482,16 @@ ON DUPLICATE KEY UPDATE name=$name, port=8085, gamebuild=12340, icon=$icon, addr
    Fix = { param($c) Invoke-ApplyServerConfig $c.Root | ForEach-Object { Write-ToolLog "$_" } }
 },
 
+@{ Id = 'unknownopts'; Area = 'Settings'; Name = 'Options this server version understands'
+   Test = {
+       param($c)
+       # Written by apply-config: options the app or you set that this server's version does not know (it ignores them).
+       $f = Join-Path $c.Root 'tools\config-unknown.txt'
+       $u = @(if (Test-Path $f) { Get-Content $f | Where-Object { $_.Trim() } })
+       if ($u.Count) { @{ Status = 'Warning'; Detail = "$($u.Count) option(s) have no effect because this server version doesn't know them (a module may have renamed them): $($u -join ', '). Change them under World settings > All options, or report it if the app set them." } }
+   }
+},
+
 # ------------------------------------------------------------------ running programs
 @{ Id = 'orphans'; Area = 'Programs'; Name = 'Leftover server processes'
    Test = {

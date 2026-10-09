@@ -25,7 +25,16 @@ if ($S.ConfOverrides) {
 }
 $script:CapturedOverrides = 0
 # Keys this script sets only in some cases (expansion, AI chatter, AH bot): never treat them as hand edits.
-$ConditionalKeys = '^AiPlayerbot\.(TeleTo|UseFly|UseFast|RandomBotAutoJoin|EnableBroadcasts|RandomBotTalk|RandomBotEmote|RandomBotSuggestDungeons|EnableGreet|RandomBotSayWithoutMaster)|^AIPlayerbot\.GuildFeedback|^AuctionHouseBot\.'
+$ConditionalKeys = '^(AiPlayerbot|Playerbots)\.(TeleTo|UseFly|UseFast|RandomBotAutoJoin|EnableBroadcasts|RandomBotTalk|RandomBotEmote|RandomBotSuggestDungeons|EnableGreet|RandomBotSayWithoutMaster|GuildFeedback|GuildRepliesRate)|^AuctionHouseBot\.'
+$script:UnknownKeys = New-Object System.Collections.ArrayList
+
+function Get-ConfKeyAliases([string]$Key) {
+    # Playerbots renamed every option from "AiPlayerbot.X" to "Playerbots.X" (2026). Servers built before that use the
+    # old names, newer ones the new names - and the module only reads its own spelling. Same list as in src\Manage.ps1.
+    if ($Key -match '^A[iI]Playerbot\.(.+)$') { return @("Playerbots.$($Matches[1])") }
+    if ($Key -match '^Playerbots\.(.+)$') { return @("AiPlayerbot.$($Matches[1])", "AIPlayerbot.$($Matches[1])") }
+    @()
+}
 
 function Get-KeyValues($lines) {
     $kv = @{}
@@ -72,15 +81,29 @@ function Set-Conf([string]$file, [hashtable]$values, [string]$Template) {
         $distVals = Get-KeyValues $lines
         $cur = Get-KeyValues (Get-Content $file)
         foreach ($k in $cur.Keys) {
-            if ($values.ContainsKey($k) -or $k -match $ConditionalKeys) { continue }
+            if ($values.ContainsKey($k) -or $k -match $ConditionalKeys -or @(Get-ConfKeyAliases $k | Where-Object { $values.ContainsKey($_) }).Count) { continue }
             if ($distVals.ContainsKey($k) -and $distVals[$k].Trim('"') -eq $cur[$k].Trim('"')) { continue }
             if (-not $Overrides[$rel]) { $Overrides[$rel] = @{} }
             if (-not $Overrides[$rel].ContainsKey($k)) { $Overrides[$rel][$k] = $cur[$k]; $script:CapturedOverrides++ }
         }
     }
 
-    $all = $values.Clone()
-    if ($Overrides[$rel]) { foreach ($k in $Overrides[$rel].Keys) { $all[$k] = $Overrides[$rel][$k] } }
+    # Use the option names this version of the file actually has (see Get-ConfKeyAliases).
+    $distKeys = Get-KeyValues $lines
+    $resolve = {
+        param($k)
+        if ($distKeys.ContainsKey($k)) { return $k }
+        foreach ($a in Get-ConfKeyAliases $k) { if ($distKeys.ContainsKey($a)) { return $a } }
+        $k
+    }
+    $all = @{}
+    foreach ($k in $values.Keys) { $all[(& $resolve $k)] = $values[$k] }
+    if ($Overrides[$rel]) {
+        # Overrides win. If the same option is overridden under both spellings, the file's own spelling wins.
+        $ok = @($Overrides[$rel].Keys | Sort-Object { $distKeys.ContainsKey($_) })
+        foreach ($k in $ok) { $all[(& $resolve $k)] = $Overrides[$rel][$k] }
+    }
+    foreach ($k in $all.Keys) { if (-not $distKeys.ContainsKey($k)) { [void]$script:UnknownKeys.Add("$rel`: $k") } }
     if ($rel -eq 'worldserver.conf' -and $EventMult.Count) {
         $distVals = Get-KeyValues $lines
         foreach ($k in $EventMult.Keys) {
@@ -251,7 +274,8 @@ if ($S.Llm.Enabled) {
     foreach ($k in 'EnableBroadcasts', 'RandomBotTalk', 'RandomBotEmote', 'RandomBotSuggestDungeons', 'EnableGreet', 'RandomBotSayWithoutMaster') {
         $pb["AiPlayerbot.$k"] = '0'
     }
-    $pb['AIPlayerbot.GuildFeedback'] = '0'
+    # Guild chat chatter (GuildFeedback was removed in newer Playerbots; a 0% reply rate works in every version).
+    $pb['AiPlayerbot.GuildRepliesRate'] = '0'
 }
 Set-Conf "$Configs\modules\playerbots.conf" $pb
 
@@ -321,5 +345,9 @@ if ($script:CapturedOverrides) {
     Write-Host "Kept $($script:CapturedOverrides) hand-made option(s) from the old config files (see All options in the app)."
 }
 Set-Content (Join-Path $PSScriptRoot 'events-active.txt') ($ActiveEvents -join "`r`n") -Encoding utf8
+# Options the app (or the user) sets that this server version does not know: the server ignores them.
+# Listed for Check & repair; usually a module renamed or removed an option.
+Set-Content (Join-Path $PSScriptRoot 'config-unknown.txt') ($script:UnknownKeys -join "`r`n") -Encoding utf8
+if ($script:UnknownKeys.Count) { Write-Host "Note: $($script:UnknownKeys.Count) option(s) are not known to this server version and have no effect: $($script:UnknownKeys -join ', ')" }
 if ($ActiveEvents.Count) { Write-Host "Active events: $($ActiveEvents -join ', ')" }
 Write-Host 'Config generation complete.'
